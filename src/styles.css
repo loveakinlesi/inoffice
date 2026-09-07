@@ -1,0 +1,25 @@
+@import "tailwindcss";
+@theme { --shadow-card: 0 1px 2px rgba(15,23,42,.04), 0 10px 30px rgba(15,23,42,.06); }
+@layer base {
+  * { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+  body { font-feature-settings: "cv02","cv03","cv04","cv11"; font-variant-numeric: tabular-nums; }
+  button, input, select { accent-color: #0f172a; }
+  button:not(:disabled) { cursor: pointer; }
+  button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+  ::selection { background: #cbd5e1; color: #0f172a; }
+  [hidden] { display: none !important; }
+}
+@layer components {
+  .btn { @apply inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50; }
+  .primary { @apply bg-slate-950 text-white border-slate-950 hover:bg-slate-800; }
+  .danger { @apply text-red-700 border-red-200 hover:bg-red-50; }
+  .field { @apply block w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base; }
+  .modal { @apply fixed m-auto max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-0 text-slate-950 shadow-2xl; }
+  .modal-header { @apply sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-4; }
+}
+.modal::backdrop { background: rgb(15 23 42 / .4); backdrop-filter: blur(8px); }
+body:has(dialog[open]) { overflow: hidden; }
+.calendar-grid { grid-template-columns: repeat(7,minmax(0,1fr)); }
+.day-cell { min-height: 108px; min-width: 0; }
+@media(max-width:640px) { .day-cell { min-height: 82px; padding: 6px; } .day-label { font-size: 10px; } }
+@media(prefers-reduced-motion:reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
