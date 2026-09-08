@@ -85,8 +85,11 @@ $('calendar').addEventListener('click',e=>{
   const entries={...state.entries};
   if (next==='blank') delete entries[key]; else entries[key]=next;
   try {saveEntries(entries);}catch{return;}
+  const scrollX=window.scrollX,scrollY=window.scrollY;
   state.entries=entries;render();
   $('calendar').querySelector(`[data-date="${button.dataset.date}"]`)?.focus({preventScroll:true});
+  // iOS Safari ignores focus({preventScroll:true}) on recreated elements, so restore manually.
+  window.scrollTo(scrollX,scrollY);
   toast(`${button.dataset.date}: ${next === 'blank' ? 'Blank' : STATUS_META[next].label}`);track('attendance_status_changed');
 });
 $('overviewGrid').addEventListener('click',e=>{
