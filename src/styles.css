@@ -2,6 +2,7 @@
 @theme { --shadow-card: 0 1px 2px rgba(15,23,42,.04), 0 10px 30px rgba(15,23,42,.06); }
 @layer base {
   * { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+  html { touch-action: manipulation; }
   body { font-feature-settings: "cv02","cv03","cv04","cv11"; font-variant-numeric: tabular-nums; }
   button, input, select { accent-color: #0f172a; }
   button:not(:disabled) { cursor: pointer; }
