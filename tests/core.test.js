@@ -8,10 +8,11 @@ const makeState=()=>({settings:{...DEFAULT_SETTINGS},entries:{},holidayCache:{fe
 test('weekday calculations, exclusion, rounding and manual overrides',()=>{
  const s=makeState(); s.entries={'2026-09-08':'office','2026-09-09':'ooo','2026-09-12':'office'};
  let c=calculateMonth(new Date(2026,8,1),s);
- assert.equal(c.weekdays,22);assert.equal(c.office,1);assert.equal(c.working,20);assert.equal(c.required,10);assert.equal(c.remaining,9);
- s.entries['2026-09-07']='home'; c=calculateMonth(new Date(2026,8,1),s);assert.equal(c.bank,0);assert.equal(c.required,11);
- assert.equal(getStatus(new Date(2026,8,7),s),'home');
- s.settings.targetPercentage=60;assert.equal(calculateMonth(new Date(2026,8,1),s).required,13);
+ assert.equal(c.weekdays,22);assert.equal(c.office,1);assert.equal(c.ooo,1);assert.equal(c.blank,19);assert.equal(c.working,21);assert.equal(c.effective,20);assert.equal(c.required,10);assert.equal(c.remaining,9);
+ s.entries['2026-09-10']='sick'; c=calculateMonth(new Date(2026,8,1),s);assert.equal(c.sick,1);assert.equal(c.blank,18);assert.equal(c.effective,19);assert.equal(c.required,10);
+ s.entries['2026-09-07']='home'; c=calculateMonth(new Date(2026,8,1),s);assert.equal(c.bank,1);assert.equal(c.working,21);assert.equal(c.effective,19);assert.equal(c.required,10);
+ assert.equal(getStatus(new Date(2026,8,7),s),'bank');
+ s.settings.targetPercentage=60;assert.equal(calculateMonth(new Date(2026,8,1),s).required,12);
 });
 test('forecast excludes past dates, weekends, OOO, holidays and already counted office days',()=>{
  const s=makeState();s.entries={'2026-09-08':'office','2026-09-09':'ooo'};
@@ -22,7 +23,7 @@ test('forecast excludes past dates, weekends, OOO, holidays and already counted 
 });
 test('zero working days and leap years',()=>{
  const s=makeState();s.entries=Object.fromEntries(Array.from({length:29},(_,i)=>[`2024-02-${String(i+1).padStart(2,'0')}`,'ooo']));
- const c=calculateMonth(new Date(2024,1,1),s);assert.equal(c.weekdays,21);assert.equal(c.working,0);assert.equal(c.required,0);assert.equal(c.progress,100);
+ const c=calculateMonth(new Date(2024,1,1),s);assert.equal(c.weekdays,21);assert.equal(c.working,21);assert.equal(c.effective,0);assert.equal(c.required,0);assert.equal(c.progress,100);
 });
 test('holiday normalization, fresh cache and failed fetch fallback',async()=>{
  const json=Object.fromEntries(['england-and-wales','scotland','northern-ireland'].map(r=>[r,{events:[{date:'2026-12-25',title:'Christmas Day'}]}]));

@@ -1,39 +1,67 @@
 import { $ } from './ui.js';
-import { REGION_NAMES } from './constants.js';
 import { calculateMonth, formatMonth } from './attendance.js';
-import { forecastMonth } from './forecast.js';
 function renderStats(counts, state) {
-        const stats = [
-          ["Weekdays", counts.weekdays, "Mon–Fri"],
-          ["Bank holidays", counts.bank, "Excluded"],
-          ["OOO days", counts.ooo, "Excluded"],
-          ["Working days", counts.working, "Net total"],
-          ["Office days", counts.office, "Recorded"],
-          ["Required office days", counts.required, `${state.settings.targetPercentage}% target`],
-          ["Remaining days", counts.remaining, counts.achieved ? "Complete" : "To attend"]
-        ];
-        $("statsGrid").innerHTML = [4, 5, 6, 0, 1, 2, 3].map(i => { const [label, value, note] = stats[i]; return `
-          <div class="${i >= 4 ? "col-span-2" : "col-span-3"} min-w-0 rounded-xl border lg:col-span-1 sm:rounded-2xl ${i === 6 && !counts.achieved ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white"} p-3 sm:p-4 shadow-card">
-            <p class="${i >= 4 ? "min-h-8 sm:min-h-0" : ""} text-xs font-medium text-slate-500">${i === 5 ? '<span class="sm:hidden">Required days</span><span class="hidden sm:inline">Required office days</span>' : label}</p>
-            <p class="mt-1 ${i >= 4 ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl"} font-semibold tracking-tight">${value}</p>
-            <p class="mt-1 hidden text-xs text-slate-500 sm:block">${note}</p>
-          </div>`; }).join("");
-      }
+  const requiredPct = counts.effective ? Math.round((counts.required / counts.effective) * 100) : 0;
+  const currentPct = counts.effective ? Math.round((counts.office / counts.effective) * 100) : 100;
+  const card = (title, body, note, extra = '') => `
+    <div class="min-w-[min(10.5rem,100%)] max-w-full flex-1 rounded-xl border border-slate-200 bg-white p-3 shadow-card sm:max-w-[15rem] sm:rounded-2xl sm:p-4 ${extra}">
+      <p class="text-base font-medium text-slate-600">${title}</p>
+      <p class="mt-1 text-xl font-bold tracking-tight sm:text-2xl">${body}</p>
+      ${note ? `<p class="mt-1 text-xs text-slate-500">${note}</p>` : ''}
+    </div>`;
+  const currentCard = state.settings.attendanceMode === 'percentage'
+    ? card("Current", `${currentPct}%`, 'Office days as a share of effective days')
+    : '';
+
+  $("statsGrid").innerHTML = [
+    `
+      <div class="min-w-full max-w-full flex-1 rounded-xl border border-slate-200 bg-white p-3 shadow-card sm:min-w-[20rem] sm:max-w-[28rem] sm:rounded-2xl sm:p-4">
+        <div class="flex items-end justify-between gap-3">
+          <div>
+            <p class="text-xs font-medium text-slate-500">Days in Office</p>
+            <p class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">${counts.office}/${counts.required}</p>
+          </div>
+          <p class="text-sm font-semibold text-slate-600">${counts.progress.toFixed(0)}%</p>
+        </div>
+        <div class="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-200">
+          <div class="h-full rounded-full bg-emerald-500 transition-all duration-500" style="width:${counts.progress}%"></div>
+        </div>
+      </div>
+    `,
+    currentCard,
+    card(
+      "Required",
+      `${counts.required}`,
+      state.settings.attendanceMode === 'percentage'
+        ? `${state.settings.targetPercentage}% of effective days${counts.effective ? ` (${requiredPct}%)` : ''}`
+        : `${state.settings.targetDaysPerWeek} office days per week`,
+    ),
+    card("Working days", `${counts.working}`, 'Weekdays minus bank holidays'),
+    card("Leave days", `${counts.ooo + counts.sick}`, 'OOO + sick days'),
+    card("Bank holidays", `${counts.bank}`, 'Public holidays excluded from target')
+  ].filter(Boolean).join('');
+}
 export function renderSummary(state) {
         const counts = calculateMonth(state.viewDate, state);
-        $("monthTitle").textContent = formatMonth(state.viewDate);
-        $("summaryMonth").textContent = formatMonth(state.viewDate);
-        $("regionLabel").textContent = `${REGION_NAMES[state.settings.region]} · ${state.settings.targetPercentage}% office target`;
-        $("progressText").textContent = `${counts.office} / ${counts.required}`;
-        $("progressBar").setAttribute("aria-valuenow", String(Math.round(counts.progress)));
-        $("progressBar").setAttribute("aria-valuetext", `${counts.office} of ${counts.required} required office days`);
-        $("progressBar").style.width = `${counts.progress}%`;
-        $("statusMessage").className = `mt-3 rounded-xl border px-3 py-3 text-sm font-medium ${
-          counts.achieved ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800"
-        }`;
-        $("statusMessage").textContent = counts.achieved
-          ? "✓ Target achieved"
-          : `Need ${counts.remaining} more office day${counts.remaining === 1 ? "" : "s"}`;
-        $("forecastText").textContent = forecastMonth(state.viewDate, counts, state);
+        const month = formatMonth(state.viewDate);
+        const monthTitle = $("monthTitleMobile");
+        const summaryMonth = $("summaryMonth");
+        if (monthTitle) monthTitle.textContent = month;
+        if (summaryMonth) summaryMonth.textContent = month;
+        const progressBar = $("progressBar");
+        if (progressBar) {
+          progressBar.setAttribute("aria-valuenow", String(Math.round(counts.progress)));
+          progressBar.setAttribute("aria-valuetext", `${counts.office} of ${counts.required} required office days`);
+          progressBar.style.width = `${counts.progress}%`;
+        }
+        const statusMessage = $("statusMessage");
+        if (statusMessage) {
+          statusMessage.className = `mt-3 rounded-xl border px-3 py-3 text-sm font-medium ${
+            counts.achieved ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800"
+          }`;
+          statusMessage.textContent = counts.achieved
+            ? "✓ Target achieved"
+            : `Need ${counts.remaining} more office day${counts.remaining === 1 ? "" : "s"}`;
+        }
         renderStats(counts, state);
       }

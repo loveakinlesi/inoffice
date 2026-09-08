@@ -29,5 +29,5 @@ export async function fetchHolidays(cache,{fetcher=fetch,force=false}={}) {
 export function holidayCoverage(state) {
   const year=state.viewDate.getFullYear();
   const dates=Object.keys(state.holidayCache.data[state.settings.region]||{});
-  return dates.some(d=>d.startsWith(`${year}-`)) ? '' : ` No automatic holidays available for ${year}; add them manually.`;
+  return dates.some(d=>d.startsWith(`${year}-`)) ? '' : ` No automatic holidays available for ${year}; try refreshing later.`;
 }

@@ -7,12 +7,17 @@ export const daysInMonth = d => new Date(d.getFullYear(),d.getMonth()+1,0).getDa
 export const getMonthDates = d => Array.from({length:daysInMonth(d)},(_,i)=>new Date(d.getFullYear(),d.getMonth(),i+1));
 export const formatMonth = d => new Intl.DateTimeFormat('en-GB',{month:'long',year:'numeric'}).format(d);
 export const getAutoHoliday = (d,s) => s.holidayCache.data?.[s.settings.region]?.[iso(d)] || null;
-export const getStatus = (d,s) => Object.hasOwn(s.entries,iso(d)) ? s.entries[iso(d)] : getAutoHoliday(d,s) ? 'bank' : 'home';
+export const getStatus = (d,s) => getAutoHoliday(d,s) ? 'bank' : Object.hasOwn(s.entries,iso(d)) ? s.entries[iso(d)] : 'blank';
 export function calculateMonth(date,state) {
-  const c = {weekdays:0, bank:0, ooo:0, office:0, home:0};
-  getMonthDates(date).filter(isWeekday).forEach(d=>{ c.weekdays++; c[getStatus(d,state)]++; });
-  c.working = c.weekdays-c.bank-c.ooo;
-  c.required = Math.ceil(c.working*state.settings.targetPercentage/100);
+  const c = {weekdays:0, bank:0, ooo:0, sick:0, office:0, home:0, blank:0};
+  getMonthDates(date).filter(isWeekday).forEach(d=>{
+    c.weekdays++;
+    const status = getStatus(d,state);
+    if (Object.hasOwn(c, status)) c[status]++;
+  });
+  c.working = c.weekdays-c.bank;
+  c.effective = c.working-c.ooo-c.sick;
+  c.required = Math.ceil(c.effective*state.settings.targetPercentage/100);
   c.remaining = Math.max(c.required-c.office,0);
   c.progress = c.required ? Math.min(100,c.office/c.required*100) : 100;
   c.achieved = c.remaining === 0;

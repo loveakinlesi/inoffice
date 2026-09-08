@@ -10,7 +10,7 @@ InOffice is a lightweight attendance tracker for hybrid workers. Set your office
 - **Monthly summary:** office, required, and remaining days appear above the calendar.
 - **Interactive calendar:** Monday-first, with disabled weekends and a highlighted current day.
 - **UK bank holidays:** England & Wales, Scotland, and Northern Ireland, with cached fallback and manual overrides.
-- **Progress and forecasts:** see your progress and whether enough eligible days remain to reach your target.
+- **Progress tracking:** see your progress against the monthly office target.
 - **Year overview:** compare all twelve months and jump directly to a month.
 - **Backup and restore:** export or import settings, attendance, and cached holidays as JSON.
 - **Responsive and accessible:** compact mobile cards, keyboard-accessible dialogs, visible focus states, and reduced-motion support.
@@ -67,7 +67,11 @@ Select a weekday to cycle through:
 
 Only weekdays count. Bank holidays and OOO days are excluded from working days. Manual entries take precedence over automatic bank holidays, including an explicit Home entry.
 
-Future Office entries count toward the monthly total as planned attendance. Forecasts include today's eligible Home day and future eligible Home days, excluding weekends, bank holidays, OOO days, and Office days already counted. Past months have no remaining eligible days.
+Future Office entries count toward the monthly total as planned attendance.
+
+### Future additions
+
+Forecasting is intentionally hidden for now. The existing forecast module remains in `src/forecast.js` so it can be reintroduced later when the experience is ready.
 
 ### Bank holidays
 
@@ -126,7 +130,7 @@ src/
   storage.js            LocalStorage access and migration
   validation.js         Stored data and backup validation
   attendance.js         Pure monthly attendance calculations
-  forecast.js           Remaining-day forecasts
+  forecast.js           Future remaining-day forecasts
   holidays.js           GOV.UK fetching and cache handling
   calendar.js           Monthly calendar rendering
   dashboard.js          Summary metrics and progress
