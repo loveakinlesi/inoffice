@@ -1,4 +1,4 @@
-const CACHE_NAME = 'inoffice-shell-v1';
+const CACHE_NAME = 'inoffice-shell-v2';
 const SHELL_ASSETS = [
   '/',
   '/index.html',
@@ -27,6 +27,8 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
 
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+  // API responses are per-user and must always come from the network.
+  if (url.pathname.startsWith('/api/')) return;
 
   if (request.mode === 'navigate') {
     event.respondWith(

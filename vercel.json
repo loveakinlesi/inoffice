@@ -2,11 +2,9 @@
   "framework": "vite",
   "buildCommand": "pnpm run build",
   "outputDirectory": "dist",
+  "installCommand": "pnpm install --frozen-lockfile",
   "rewrites": [
-    {
-      "source": "/((?!_vercel/|assets/).*)",
-      "destination": "/index.html"
-    }
-  ],
-  "installCommand": "pnpm install --frozen-lockfile"
+    { "source": "/api/:path*", "destination": "/api" },
+    { "source": "/((?!_vercel/|assets/|api/).*)", "destination": "/index.html" }
+  ]
 }
