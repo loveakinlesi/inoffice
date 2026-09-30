@@ -3,3 +3,15 @@ dist/
 .vercel/
 test-results/
 playwright-report/
+
+# Tool caches
+.pnpm-store/
+.vite/
+
+# Environment files (secrets). Commit .env.example only.
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
