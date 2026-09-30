@@ -40,13 +40,13 @@ test('days setup, backup roundtrip, invalid import, rerun and resets',async({pag
  await page.getByRole('link',{name:'Open settings'}).click();
  const download=page.waitForEvent('download');await page.getByRole('button',{name:'Export JSON'}).click();const file=await download;const path=await file.path();
  await page.locator('#settingsContentPage #importInput').setInputFiles({name:'bad.json',mimeType:'application/json',buffer:Buffer.from('{"entries":null}')});await expect(page.locator('#settingsContentPage #importError')).toBeVisible();
- page.on('dialog',d=>d.accept());
- await page.getByRole('button',{name:'Reset current month',exact:true}).click();await expect(page.locator('[data-date="2026-09-08"]')).toHaveAttribute('title','Undecided');
- await page.getByRole('link',{name:'Open settings'}).click();await page.locator('#settingsContentPage #importInput').setInputFiles(path);await expect(page.locator('[data-date="2026-09-08"]')).toHaveAttribute('title','Office');
+ const confirm=name=>page.getByRole('alertdialog').getByRole('button',{name}).click();
+ await page.getByRole('button',{name:'Reset current month',exact:true}).click();await confirm('Reset month');await expect(page.locator('[data-date="2026-09-08"]')).toHaveAttribute('title','Undecided');
+ await page.getByRole('link',{name:'Open settings'}).click();await page.locator('#settingsContentPage #importInput').setInputFiles(path);await confirm('Replace data');await expect(page.locator('[data-date="2026-09-08"]')).toHaveAttribute('title','Office');
  await page.getByRole('link',{name:'Open settings'}).click();await page.getByRole('button',{name:'Run setup again'}).click();await expect(page.getByRole('heading',{name:'Welcome to InOffice'})).toBeVisible();
  const setupForm=page.locator('#setupForm');
  await setupForm.getByRole('radio',{name:'Percentage',exact:false}).check();await setupForm.locator('input[name="targetPercentage"]').fill('75');await setupForm.getByRole('button',{name:'Continue',exact:true}).click();await setupForm.getByRole('button',{name:'Finish setup'}).click();await page.getByRole('button',{name:'Open InOffice',exact:true}).click();await expect(page.locator('[data-date="2026-09-08"]')).toHaveAttribute('title','Office');
- await page.getByRole('link',{name:'Open settings'}).click();await page.getByRole('button',{name:'Reset all InOffice data'}).click();await expect(page.getByRole('heading',{name:'Welcome to InOffice'})).toBeVisible();
+ await page.getByRole('link',{name:'Open settings'}).click();await page.getByRole('button',{name:'Reset all InOffice data'}).click();await confirm('Delete everything');await expect(page.getByRole('heading',{name:'Welcome to InOffice'})).toBeVisible();
  expect(await page.evaluate(()=>localStorage.getItem('inoffice.entries.v1'))).toBeNull();
 });
 test('cached holiday fallback and legacy migration',async({page})=>{
