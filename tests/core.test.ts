@@ -4,7 +4,8 @@ import { calculateMonth, getStatus } from '../src/lib/attendance.ts';
 import { forecast } from '../src/lib/forecast.ts';
 import { fetchHolidays, normalizeHolidays } from '../src/lib/holidays.ts';
 import { DEFAULT_SETTINGS, validateBackup } from '../src/lib/validation.ts';
-const makeState=()=>({settings:{...DEFAULT_SETTINGS},entries:{},holidayCache:{fetchedAt:0,data:{'england-and-wales':{'2026-09-07':'Test holiday'}}}});
+import type { AttendanceState } from '../src/lib/types.ts';
+const makeState=():AttendanceState=>({settings:{...DEFAULT_SETTINGS},entries:{},holidayCache:{fetchedAt:0,data:{'england-and-wales':{'2026-09-07':'Test holiday'}}}});
 test('weekday calculations, exclusion, rounding and manual overrides',()=>{
  const s=makeState(); s.entries={'2026-09-08':'office','2026-09-09':'ooo','2026-09-12':'office'};
  let c=calculateMonth(new Date(2026,8,1),s);
@@ -30,7 +31,7 @@ test('holiday normalization, fresh cache and failed fetch fallback',async()=>{
  const cache=normalizeHolidays(json);let called=false;
  assert.equal((await fetchHolidays(cache,{fetcher:()=>{called=true;throw Error();}})).cache,cache);assert.equal(called,false);
  const fallback=await fetchHolidays(cache,{force:true,fetcher:async()=>{throw Error();}});assert.equal(fallback.cache,cache);assert.match(fallback.message,/cached/);
- const result=await fetchHolidays({fetchedAt:0,data:{}},{fetcher:async()=>({ok:true,json:async()=>json})});assert.equal(result.cache.data.scotland['2026-12-25'],'Christmas Day');
+ const result=await fetchHolidays({fetchedAt:0,data:{}},{fetcher:async()=>({ok:true,json:async()=>json})});assert.equal(result.cache.data.scotland?.['2026-12-25'],'Christmas Day');
 });
 test('backup validation rejects invalid dates, statuses, modes, and mismatched targets',()=>{
  const s=makeState();const backup={app:'InOffice',version:1,exportedAt:new Date().toISOString(),...s};assert.doesNotThrow(()=>validateBackup(backup));
@@ -40,8 +41,8 @@ test('backup validation rejects invalid dates, statuses, modes, and mismatched t
  assert.doesNotThrow(()=>validateBackup({...backup,settings:{...s.settings,attendanceMode:'days',targetDaysPerWeek:3,targetPercentage:60}}));
 });
 test('LocalStorage abstraction migrates legacy and rolls back failed imports',async()=>{
- const values=new Map();let failKey=null;
- globalThis.localStorage={getItem:k=>values.get(k)??null,setItem:(k,v)=>{if(k===failKey)throw Error('Quota');values.set(k,v);},removeItem:k=>values.delete(k)};
+ const values=new Map<string,string>();let failKey:string|null=null;
+ globalThis.localStorage={getItem:(k:string)=>values.get(k)??null,setItem:(k:string,v:string)=>{if(k===failKey)throw Error('Quota');values.set(k,v);},removeItem:(k:string)=>{values.delete(k);}} as Storage;
  const store=await import('../src/lib/storage.ts');
  values.set('office-attendance.settings.v1',JSON.stringify({target:60,region:'scotland'}));values.set('office-attendance.entries.v1',JSON.stringify({'2026-09-07':'office'}));
  store.migrateLegacy();assert.equal(store.loadSettings().onboardingComplete,true);assert.equal(store.loadSettings().targetPercentage,60);assert.equal(store.loadEntries()['2026-09-07'],'office');

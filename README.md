@@ -17,7 +17,7 @@ InOffice is a lightweight attendance tracker for hybrid workers. Set your office
 
 ## Getting started
 
-Use Node.js 22.12+ and pnpm 11.20.0. The pnpm version is pinned in `package.json`.
+Use Node.js 22.22+ and pnpm 11.20.0. The pnpm version is pinned in `package.json`.
 
 ```sh
 pnpm install --frozen-lockfile
@@ -34,6 +34,7 @@ Open the local URL printed by Vite, then complete the two-step setup.
 | `pnpm build` | Build the production app into `dist/` |
 | `pnpm preview` | Preview the production build locally |
 | `pnpm test` | Run calculation, validation, and storage tests |
+| `pnpm typecheck` | Type-check the project with TypeScript |
 | `pnpm test:e2e` | Run Playwright browser tests |
 
 Install the browser before running end-to-end tests:
@@ -71,7 +72,7 @@ Future Office entries count toward the monthly total as planned attendance.
 
 ### Future additions
 
-Forecasting is intentionally hidden for now. The existing forecast module remains in `src/forecast.js` so it can be reintroduced later when the experience is ready.
+Forecasting is intentionally hidden for now. The existing forecast module remains in `src/lib/forecast.ts` so it can be reintroduced later when the experience is ready.
 
 ### Bank holidays
 
@@ -118,34 +119,33 @@ pnpm dlx vercel
 
 No environment variables or application server are required. SPA rewrites preserve the assets and analytics routes.
 
-To collect analytics, [enable Web Analytics in the Vercel project](https://vercel.com/docs/analytics/quickstart) and deploy. Custom-event availability depends on your Vercel plan. Analytics integration lives in `src/analytics.js` and is disabled during development.
+To collect analytics, [enable Web Analytics in the Vercel project](https://vercel.com/docs/analytics/quickstart) and deploy. Custom-event availability depends on your Vercel plan. Analytics integration lives in `src/lib/analytics.ts` and is disabled during development.
 
 ## Project structure
 
 ```text
-public/                 Favicon and app icon
+public/                   Icons, manifest and service worker
 src/
-  main.js               App startup and event wiring
-  state.js              Initial application state
-  storage.js            LocalStorage access and migration
-  validation.js         Stored data and backup validation
-  attendance.js         Pure monthly attendance calculations
-  forecast.js           Future remaining-day forecasts
-  holidays.js           GOV.UK fetching and cache handling
-  calendar.js           Monthly calendar rendering
-  dashboard.js          Summary metrics and progress
-  overview.js           Year overview
-  onboarding.js         First-run setup
-  settings.js           Preferences and data actions
-  target-controls.js    Shared attendance target controls
-  constants.js          Status and region definitions
-  ui.js                 Dialog and notification helpers
-  analytics.js          Optional privacy-safe telemetry
-  styles.css            Tailwind and shared styles
-tests/                  Unit and browser tests
+  main.tsx                React entry point and service worker registration
+  App.tsx                 Providers, onboarding gate and routes
+  state/attendance.tsx    AttendanceProvider and useAttendance() state hook
+  pages/                  Calendar, year overview and settings screens
+  components/             App shell, calendar, summary, onboarding, install prompt
+  components/ui/          shadcn/ui components
+  lib/
+    types.ts              Shared data types
+    storage.ts            LocalStorage access and migration
+    validation.ts         Stored data and backup validation
+    attendance.ts         Pure monthly attendance calculations
+    forecast.ts           Future remaining-day forecasts
+    holidays.ts           GOV.UK fetching and cache handling
+    constants.ts          Status and region definitions
+    analytics.ts          Optional privacy-safe telemetry
+  styles.css              Tailwind, shadcn theme and shared styles
+tests/                    Unit and browser tests
 ```
 
-Built with Vite, vanilla JavaScript, and Tailwind CSS. No frontend framework is used.
+Built with Vite, React, TypeScript, Tailwind CSS and [shadcn/ui](https://ui.shadcn.com) (Base UI primitives).
 
 ## Contributing
 
@@ -153,8 +153,8 @@ Issues and pull requests are welcome. For a substantial change, open an issue fi
 
 1. Fork the repository and create a branch for your change.
 2. Install dependencies with `pnpm install --frozen-lockfile`.
-3. Keep attendance data local and preserve the vanilla JavaScript architecture.
-4. Run `pnpm test` and `pnpm build`; run browser tests when changing user flows.
+3. Keep calculation logic in `src/lib/` free of React so it stays unit-testable.
+4. Run `pnpm typecheck`, `pnpm test` and `pnpm build`; run browser tests when changing user flows.
 5. Describe the change and relevant verification in your pull request.
 
 Use synthetic attendance data in screenshots, fixtures, and issue reports.
