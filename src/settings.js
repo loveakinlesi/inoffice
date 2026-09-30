@@ -4,7 +4,7 @@ import { saveSettings, saveEntries, saveBackup, resetData } from './lib/storage.
 import { validateBackup, DEFAULT_SETTINGS } from './lib/validation.ts';
 import { monthKey, formatMonth } from './lib/attendance.ts';
 import { holidayCoverage } from './lib/holidays.ts';
-import { track } from './analytics.js';
+import { track } from './lib/analytics.ts';
 const closeSettingsModal = () => {
   const modal = $('settingsModal');
   if (modal?.open) closeModal('settingsModal');

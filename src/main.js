@@ -11,7 +11,7 @@ import { fetchHolidays, holidayCoverage } from './lib/holidays.ts';
 import { saveEntries, saveHolidayCache } from './lib/storage.ts';
 import { formatMonth, isWeekday, getAutoHoliday } from './lib/attendance.ts';
 import { STATUS_META } from './lib/constants.ts';
-import { initAnalytics, track } from './analytics.js';
+import { initAnalytics, track } from './lib/analytics.ts';
 window.addEventListener('storage-error',e=>{ $('storageError').textContent=e.detail; $('storageError').hidden=false; });
 const state=createState();
 const refreshInstallPrompt = initInstallPrompt(state);

@@ -2,7 +2,7 @@ import { $, escapeHtml } from './ui.js';
 import { targetControls, regionControls, bindTargetControls, readTarget, targetDescription } from './target-controls.js';
 import { REGION_NAMES } from './lib/constants.ts';
 import { saveSettings } from './lib/storage.ts';
-import { track } from './analytics.js';
+import { track } from './lib/analytics.ts';
 export function startOnboarding(state,onComplete) {
   let step=1;
   let draft={...state.settings};
