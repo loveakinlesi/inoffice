@@ -1,5 +1,5 @@
 import { $ } from './ui.js';
-import { calculateMonth, formatMonth } from './attendance.js';
+import { calculateMonth, formatMonth } from './lib/attendance.ts';
 function renderStats(counts, state) {
   const requiredPct = counts.effective ? Math.round((counts.required / counts.effective) * 100) : 0;
   const currentPct = counts.effective ? Math.round((counts.office / counts.effective) * 100) : 100;

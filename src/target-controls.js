@@ -1,4 +1,4 @@
-import { REGION_NAMES } from './constants.js';
+import { REGION_NAMES } from './lib/constants.ts';
 import { track } from './analytics.js';
 export const targetDescription = s => s.attendanceMode==='days' ? `${s.targetDaysPerWeek} office day${s.targetDaysPerWeek===1?'':'s'} per week` : `${s.targetPercentage}% of working days`;
 export function targetControls(settings) {

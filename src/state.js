@@ -1,4 +1,4 @@
-import { loadSettings, loadEntries, loadHolidayCache, migrateLegacy } from './storage.js';
+import { loadSettings, loadEntries, loadHolidayCache, migrateLegacy } from './lib/storage.ts';
 export function createState() {
   try { migrateLegacy(); } catch { /* The storage layer displays recovery instructions. */ }
   const now=new Date();

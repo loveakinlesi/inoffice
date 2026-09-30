@@ -1,5 +1,5 @@
 import { $ } from './ui.js';
-import { calculateMonth } from './attendance.js';
+import { calculateMonth } from './lib/attendance.ts';
 export function renderOverview(state,{titleId='overviewTitle',gridId='overviewGrid'}={}) {
         const year = state.viewDate.getFullYear();
         const title = $(titleId);

@@ -1,6 +1,6 @@
-import { STATUS_META } from './constants.js';
+import { STATUS_META } from './lib/constants.ts';
 import { $, escapeHtml } from './ui.js';
-import { iso, isWeekday, isSameDay, daysInMonth, getStatus, getAutoHoliday } from './attendance.js';
+import { iso, isWeekday, isSameDay, daysInMonth, getStatus, getAutoHoliday } from './lib/attendance.ts';
 
 const STATUS_EMOJI = {
   home: '🏠',

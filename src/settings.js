@@ -1,9 +1,9 @@
 import { $, openModal, closeModal, toast } from './ui.js';
 import { targetControls, regionControls, bindTargetControls, readTarget } from './target-controls.js';
-import { saveSettings, saveEntries, saveBackup, resetData } from './storage.js';
-import { validateBackup, DEFAULT_SETTINGS } from './validation.js';
-import { monthKey, formatMonth } from './attendance.js';
-import { holidayCoverage } from './holidays.js';
+import { saveSettings, saveEntries, saveBackup, resetData } from './lib/storage.ts';
+import { validateBackup, DEFAULT_SETTINGS } from './lib/validation.ts';
+import { monthKey, formatMonth } from './lib/attendance.ts';
+import { holidayCoverage } from './lib/holidays.ts';
 import { track } from './analytics.js';
 const closeSettingsModal = () => {
   const modal = $('settingsModal');

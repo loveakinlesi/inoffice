@@ -1,7 +1,7 @@
 import { $, escapeHtml } from './ui.js';
 import { targetControls, regionControls, bindTargetControls, readTarget, targetDescription } from './target-controls.js';
-import { REGION_NAMES } from './constants.js';
-import { saveSettings } from './storage.js';
+import { REGION_NAMES } from './lib/constants.ts';
+import { saveSettings } from './lib/storage.ts';
 import { track } from './analytics.js';
 export function startOnboarding(state,onComplete) {
   let step=1;
