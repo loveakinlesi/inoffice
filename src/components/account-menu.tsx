@@ -10,6 +10,7 @@ import {
 import { Spinner } from '@/components/ui/spinner.tsx';
 import { toast } from '@/components/ui/toast.tsx';
 import { signInWithGoogle, signOut, useAuthConfig, useSession } from '@/lib/auth-client.ts';
+import { useAttendance } from '@/state/attendance.tsx';
 
 export const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]!.toUpperCase()).join('') || '?';
 
@@ -28,15 +29,21 @@ export function SignInButton({ className, label = 'Sign in', size = 'lg' }: { cl
   );
 }
 
-export async function signOutAndNotify() {
-  const { error } = await signOut();
-  toast.add({ title: error ? 'Could not sign out. Check your connection and try again.' : 'Signed out' });
+/** Signs out after sending any pending day changes, so the last clicks aren't lost with the session. */
+export function useSignOut() {
+  const { flushSaves } = useAttendance();
+  return async () => {
+    await flushSaves();
+    const { error } = await signOut();
+    toast.add({ title: error ? 'Could not sign out. Check your connection and try again.' : 'Signed out' });
+  };
 }
 
 /** Header control: sign-in button for guests (when a provider is configured), avatar menu when signed in. */
 export function AccountMenu() {
   const config = useAuthConfig();
   const { data: session, isPending } = useSession();
+  const signOutAndNotify = useSignOut();
   if (isPending || !config) return null;
   if (!session) return config.providers.google ? <SignInButton size="default" /> : null;
 

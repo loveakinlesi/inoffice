@@ -2,12 +2,13 @@ import { CloudOffIcon, WifiOffIcon } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert.tsx';
 import { Button } from '@/components/ui/button.tsx';
 import { Spinner } from '@/components/ui/spinner.tsx';
-import { signOutAndNotify } from '@/components/account-menu.tsx';
+import { useSignOut } from '@/components/account-menu.tsx';
 import { useAttendance } from '@/state/attendance.tsx';
 
 /** Full-screen state while signed-in data loads, or when it couldn't be loaded. */
 export function AccountLoading() {
   const { accountStatus, online, reloadAccount } = useAttendance();
+  const signOutAndNotify = useSignOut();
   if (accountStatus !== 'error') {
     return (
       <main className="flex min-h-dvh items-center justify-center gap-3 text-muted-foreground" aria-busy="true">

@@ -51,6 +51,8 @@ export interface AttendanceContextValue extends StoredState {
   /** Merges this browser's guest data into the account (first sign-in). Resolves false on failure. */
   importLocalIntoAccount: () => Promise<boolean>;
   reloadAccount: () => Promise<void>;
+  /** Sends any debounced day changes now (e.g. before signing out). */
+  flushSaves: () => Promise<void>;
   refreshHolidays: (force?: boolean) => Promise<void>;
 }
 
@@ -59,6 +61,11 @@ const AttendanceContext = createContext<AttendanceContextValue | null>(null);
 const firstOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
 const emptyCache = (): HolidayCache => ({ fetchedAt: 0, data: {} });
 const OFFLINE_MESSAGE = 'You’re offline. Changes can’t be saved until you reconnect.';
+/**
+ * Day changes wait this long after the last click before saving, so cycling a day through several
+ * statuses sends one request with the final value instead of several that could land out of order.
+ */
+export const ENTRY_SAVE_DELAY_MS = 500;
 
 function loadStored(): StoredState {
   try { migrateLegacy(); } catch { /* The storage layer reports recovery instructions. */ }
@@ -96,6 +103,37 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   cacheRef.current = stored.holidayCache;
   const holidayRequest = useRef(0);
   const accountRequest = useRef(0);
+  // Debounced day saves: the latest unsent status per date, and each date's chain of in-flight saves
+  // (saves for the same date run one after another so an older one can never overwrite a newer one).
+  const pendingSaves = useRef(new Map<string, { status: Status | null; timer: ReturnType<typeof setTimeout> }>());
+  const saveChains = useRef(new Map<string, Promise<void>>());
+  const onSaveError = useRef<(error: unknown) => void>(() => {});
+
+  const sendEntry = useCallback((date: string, keepalive = false): Promise<void> => {
+    const pending = pendingSaves.current.get(date);
+    if (!pending) return saveChains.current.get(date) ?? Promise.resolve();
+    clearTimeout(pending.timer);
+    pendingSaves.current.delete(date);
+    const previous = saveChains.current.get(date) ?? Promise.resolve();
+    const next = previous
+      .then(() => (pending.status === null ? api.deleteEntry(date, { keepalive }) : api.setEntry(date, pending.status, { keepalive })))
+      .then(() => {}, error => onSaveError.current(error));
+    saveChains.current.set(date, next);
+    void next.then(() => { if (saveChains.current.get(date) === next) saveChains.current.delete(date); });
+    return next;
+  }, []);
+
+  /** Sends every pending day change now and resolves once all in-flight saves have settled. */
+  const flushSaves = useCallback(async (keepalive = false) => {
+    const sent = [...pendingSaves.current.keys()].map(date => sendEntry(date, keepalive));
+    await Promise.all([...sent, ...saveChains.current.values()]);
+  }, [sendEntry]);
+
+  /** Drops unsent changes (the signed-in user changed, so they no longer apply). */
+  const discardSaves = useCallback(() => {
+    for (const { timer } of pendingSaves.current.values()) clearTimeout(timer);
+    pendingSaves.current.clear();
+  }, []);
 
   useEffect(() => {
     const onError = (e: Event) => setStorageError((e as CustomEvent<string>).detail);
@@ -116,6 +154,8 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
   /** Fetches account data. `quiet` keeps the current data on screen instead of showing loading. */
   const loadAccount = useCallback(async (id: string, quiet: boolean) => {
+    // Never fetch over unsaved changes: send them first so the server copy includes them.
+    if (quiet) await flushSaves();
     const request = ++accountRequest.current;
     if (!quiet) setAccount({ userId: id, status: 'loading', data: { settings: null, entries: {} } });
     try {
@@ -126,13 +166,23 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       if (error instanceof ApiError && error.status === 401) { void authClient.getSession(); return; }
       setAccount(a => (quiet && a?.userId === id && a.status === 'ready' ? a : { userId: id, status: 'error', data: { settings: null, entries: {} } }));
     }
-  }, []);
+  }, [flushSaves]);
 
   // Switch data source when the signed-in user changes.
   useEffect(() => {
+    discardSaves();
     if (!userId) { accountRequest.current++; setAccount(null); return; }
     void loadAccount(userId, false);
-  }, [userId, loadAccount]);
+  }, [userId, loadAccount, discardSaves]);
+
+  // Send pending day changes as soon as the page is hidden or closed, so nothing is lost.
+  useEffect(() => {
+    const flushNow = () => { if (pendingSaves.current.size) void flushSaves(true); };
+    const onVisibility = () => { if (document.visibilityState === 'hidden') flushNow(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    addEventListener('pagehide', flushNow);
+    return () => { document.removeEventListener('visibilitychange', onVisibility); removeEventListener('pagehide', flushNow); };
+  }, [flushSaves]);
 
   // Pick up changes made on other devices when the app comes back to the foreground.
   useEffect(() => {
@@ -161,20 +211,29 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     const accountMode = account !== null;
     const accountSettings = account?.data.settings ?? { ...DEFAULT_SETTINGS };
 
-    /** Applies an account change optimistically and saves it; a failed save reloads from the server. */
-    const remote = (apply: (data: AccountData) => AccountData, save: () => Promise<unknown>) => {
+    const handleSaveError = (error: unknown) => {
+      if (error instanceof ApiError && error.status === 401) {
+        toast.add({ title: 'Your session has ended. Sign in again to keep saving changes.' });
+        void authClient.getSession();
+        return;
+      }
+      toast.add({ title: error instanceof NetworkError ? OFFLINE_MESSAGE : `Couldn’t save: ${(error as Error).message}` });
+      if (account) void loadAccount(account.userId, true);
+    };
+    onSaveError.current = handleSaveError;
+
+    /** Applies an account change optimistically; returns false if it can't be saved right now. */
+    const applyRemote = (apply: (data: AccountData) => AccountData) => {
       if (!account || account.status !== 'ready') return false;
       if (!navigator.onLine) { toast.add({ title: OFFLINE_MESSAGE }); return false; }
       setAccount(a => (a ? { ...a, data: apply(a.data) } : a));
-      save().catch(error => {
-        if (error instanceof ApiError && error.status === 401) {
-          toast.add({ title: 'Your session has ended. Sign in again to keep saving changes.' });
-          void authClient.getSession();
-          return;
-        }
-        toast.add({ title: error instanceof NetworkError ? OFFLINE_MESSAGE : `Couldn’t save: ${(error as Error).message}` });
-        void loadAccount(account.userId, true);
-      });
+      return true;
+    };
+
+    /** Applies and saves an account change; pending day saves go first so they can't land after it. */
+    const remote = (apply: (data: AccountData) => AccountData, save: () => Promise<unknown>) => {
+      if (!applyRemote(apply)) return false;
+      flushSaves().then(save).catch(handleSaveError);
       return true;
     };
 
@@ -214,7 +273,12 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
           return next;
         };
         if (accountMode) {
-          return remote(d => ({ ...d, entries: update(d.entries) }), () => (status === null ? api.deleteEntry(date) : api.setEntry(date, status)));
+          if (!applyRemote(d => ({ ...d, entries: update(d.entries) }))) return false;
+          // Debounce per day: restart this day's timer and remember only its latest status.
+          const existing = pendingSaves.current.get(date);
+          if (existing) clearTimeout(existing.timer);
+          pendingSaves.current.set(date, { status, timer: setTimeout(() => void sendEntry(date), ENTRY_SAVE_DELAY_MS) });
+          return true;
         }
         const entries = update(stored.entries);
         if (!persist(() => saveEntries(entries))) return false;
@@ -259,6 +323,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         if (!account) return false;
         if (!navigator.onLine) { toast.add({ title: OFFLINE_MESSAGE }); return false; }
         try {
+          await flushSaves();
           await api.importData('merge', { settings: stored.settings.onboardingComplete ? stored.settings : null, entries: stored.entries });
           await loadAccount(account.userId, true);
           return true;
@@ -268,9 +333,10 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         }
       },
       reloadAccount: async () => { if (account) await loadAccount(account.userId, false); },
+      flushSaves: () => flushSaves(),
       refreshHolidays,
     };
-  }, [stored, account, profile, session, online, viewDate, holidayMessage, storageError, refreshHolidays, loadAccount]);
+  }, [stored, account, profile, session, online, viewDate, holidayMessage, storageError, refreshHolidays, loadAccount, flushSaves, sendEntry]);
 
   return <AttendanceContext value={value}>{children}</AttendanceContext>;
 }

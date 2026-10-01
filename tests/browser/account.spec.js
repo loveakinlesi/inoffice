@@ -152,3 +152,42 @@ test('“Not now” can be synced later from Settings', async ({ page }) => {
   await page.getByRole('link', { name: /InOffice/ }).click();
   await expect(page.locator('[data-date="2026-09-14"]')).toHaveAttribute('title', 'Office');
 });
+
+test('rapid clicks on a day send one save with the final status', async ({ page }) => {
+  await prepare(page);
+  await signIn(page, uniqueEmail());
+  await page.goto('/');
+  await completeSetup(page);
+
+  const writes = [];
+  page.on('request', r => { if (r.url().includes('/api/entries/2026-09-15')) writes.push(`${r.method()} ${r.postData() ?? ''}`); });
+  const day = page.locator('[data-date="2026-09-15"]');
+  // blank → office → home → ooo
+  await day.click(); await day.click(); await day.click();
+  await expect(day).toHaveAttribute('title', 'OOO');
+  await expect.poll(async () => (await (await page.request.get('/api/data')).json()).entries['2026-09-15']).toBe('ooo');
+  expect(writes).toEqual(['PUT {"status":"ooo"}']);
+});
+
+test('a change made just before reloading or signing out is still saved', async ({ page }) => {
+  await prepare(page);
+  const email = uniqueEmail();
+  await signIn(page, email);
+  await page.goto('/');
+  await completeSetup(page);
+
+  // Reload straight after a click: the pending save is flushed as the page hides.
+  await page.locator('[data-date="2026-09-16"]').click();
+  await page.reload();
+  await expect(page.locator('[data-date="2026-09-16"]')).toHaveAttribute('title', 'Office');
+
+  // Sign out straight after a click: the save is sent before the session ends.
+  await page.locator('[data-date="2026-09-17"]').click();
+  await page.getByRole('button', { name: 'Account menu' }).click();
+  await page.getByRole('menuitem', { name: 'Sign out' }).click();
+  await expect(page.getByText('Signed out')).toBeVisible();
+
+  await signIn(page, email);
+  const { entries } = await (await page.request.get('/api/data')).json();
+  expect(entries).toMatchObject({ '2026-09-16': 'office', '2026-09-17': 'office' });
+});

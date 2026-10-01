@@ -125,7 +125,7 @@ Signing in uses Google through [Better Auth](https://www.better-auth.com). InOff
 
 - The account is the source of truth while you are signed in. Guest data in the browser is left untouched and is used again after you sign out.
 - If this browser has guest data when you sign in, InOffice asks whether to sync it to your account. Syncing merges: anything already in your account is kept. The local copy is not deleted. If you choose **Not now**, you can sync later from **Settings → Account**.
-- Changes are saved immediately. They are not queued offline: while offline, InOffice shows a notice and blocks changes until you reconnect.
+- Changes appear immediately. Calendar clicks save about half a second after your last click on that day, so cycling through statuses sends one request with the final value; pending saves are sent at once if you leave the page or sign out. Changes are not queued offline: while offline, InOffice shows a notice and blocks changes until you reconnect.
 - **Reset all InOffice data** deletes your settings and attendance from the account. Deleting the account removes its data too.
 
 Every API route requires a valid session, scopes queries to that user, validates input with the same rules as the client, and rejects cross-site writes.

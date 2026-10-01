@@ -7,7 +7,7 @@ import { Spinner } from '@/components/ui/spinner.tsx';
 import { toast } from '@/components/ui/toast.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx';
 import { ConfirmDialog, type ConfirmRequest } from '@/components/confirm-dialog.tsx';
-import { SignInButton, initials, signOutAndNotify } from '@/components/account-menu.tsx';
+import { SignInButton, initials, useSignOut } from '@/components/account-menu.tsx';
 import { useAuthConfig, useSession } from '@/lib/auth-client.ts';
 import { localSummary } from '@/components/import-prompt.tsx';
 import { RegionControl, TargetControls, applyTargetDraft, targetDescription, toTargetDraft } from '@/components/target-controls.tsx';
@@ -75,6 +75,7 @@ function SyncLocalData() {
 function AccountSection() {
   const config = useAuthConfig();
   const { data: session, isPending } = useSession();
+  const signOutAndNotify = useSignOut();
   if (isPending || !config || (!session && !config.providers.google)) return null;
   if (!session) {
     return (

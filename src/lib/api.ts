@@ -35,8 +35,9 @@ async function request<T>(path: string, init: RequestInit & { json?: unknown } =
 export const api = {
   getData: () => request<AccountData>('/data'),
   saveSettings: (settings: Settings) => request<{ settings: Settings }>('/settings', { method: 'PUT', json: settings }),
-  setEntry: (date: string, status: Status) => request('/entries/' + date, { method: 'PUT', json: { status } }),
-  deleteEntry: (date: string) => request('/entries/' + date, { method: 'DELETE' }),
+  // `keepalive` lets a save finish while the page is being hidden or unloaded.
+  setEntry: (date: string, status: Status, { keepalive = false } = {}) => request('/entries/' + date, { method: 'PUT', json: { status }, keepalive }),
+  deleteEntry: (date: string, { keepalive = false } = {}) => request('/entries/' + date, { method: 'DELETE', keepalive }),
   resetMonth: (month: string) => request(`/entries?month=${month}`, { method: 'DELETE' }),
   importData: (mode: 'merge' | 'replace', data: { settings: Settings | null; entries: Entries }) =>
     request('/import', { method: 'POST', json: { mode, ...data } }),
