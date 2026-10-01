@@ -9,7 +9,10 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --test tests/*.test.ts",
     "test:e2e": "playwright test",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node server/db/migrate.ts",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -17,8 +20,10 @@
     "@vercel/analytics": "^1.5.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
+    "drizzle-orm": "^0.45.3",
     "hono": "^4.13.11",
     "lucide-react": "^1.48.0",
+    "postgres": "^3.4.9",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router": "^8.4.0",
@@ -33,6 +38,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "drizzle-kit": "^0.31.11",
     "tailwindcss": "^4.1.0",
     "typescript": "^7.0.2",
     "vite": "^7.0.0"

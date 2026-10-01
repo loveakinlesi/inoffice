@@ -35,6 +35,8 @@ Open the local URL printed by Vite, then complete the two-step setup.
 | `pnpm preview` | Preview the production build locally |
 | `pnpm test` | Run calculation, validation, and storage tests |
 | `pnpm typecheck` | Type-check the project with TypeScript |
+| `pnpm db:generate` | Generate a SQL migration from `server/db/schema.ts` |
+| `pnpm db:migrate` | Apply pending migrations to the database in `.env.local` |
 | `pnpm test:e2e` | Run Playwright browser tests |
 
 Install the browser before running end-to-end tests:
@@ -45,6 +47,25 @@ pnpm test:e2e
 ```
 
 Browser tests cover onboarding, both target modes, calendar interactions, persistence, settings, backup import/export, resets, holiday fallback, and responsive layouts. One test calls the live GOV.UK service and requires internet access. To use an existing Chromium installation, set `PLAYWRIGHT_EXECUTABLE_PATH` to its executable.
+
+### Database (accounts and sync)
+
+Guest mode needs no backend. Account features use a Supabase Postgres database through the API in `server/`. To work on them locally:
+
+1. Link the project and pull its environment variables (or copy `.env.example` to `.env.local` and fill it in):
+
+   ```sh
+   pnpm dlx vercel link
+   pnpm dlx vercel env pull .env.local
+   ```
+
+2. Apply migrations:
+
+   ```sh
+   pnpm db:migrate
+   ```
+
+`pnpm dev` serves the API from the Vite dev server; `GET /api/health` reports database connectivity. All InOffice tables, and the migration history, live in a dedicated `inoffice` Postgres schema. After changing `server/db/schema.ts`, run `pnpm db:generate` and commit the new file in `drizzle/`.
 
 ## How attendance is calculated
 
@@ -125,6 +146,11 @@ To collect analytics, [enable Web Analytics in the Vercel project](https://verce
 
 ```text
 public/                   Icons, manifest and service worker
+api/index.ts              Vercel Function entry for /api/*
+server/
+  app.ts                  Hono API routes
+  db/                     Drizzle schema, client and migration runner
+drizzle/                  Generated SQL migrations
 src/
   main.tsx                React entry point and service worker registration
   App.tsx                 Providers, onboarding gate and routes

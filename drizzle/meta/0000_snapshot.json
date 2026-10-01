@@ -1,0 +1,159 @@
+{
+  "id": "122db3a0-7b6e-4f6f-ade6-75d46614ac7c",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "inoffice.attendance_entries": {
+      "name": "attendance_entries",
+      "schema": "inoffice",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "status",
+          "typeSchema": "inoffice",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "attendance_entries_user_id_date_pk": {
+          "name": "attendance_entries_user_id_date_pk",
+          "columns": [
+            "user_id",
+            "date"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "inoffice.user_settings": {
+      "name": "user_settings",
+      "schema": "inoffice",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "attendance_mode": {
+          "name": "attendance_mode",
+          "type": "attendance_mode",
+          "typeSchema": "inoffice",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'percentage'"
+        },
+        "target_percentage": {
+          "name": "target_percentage",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 50
+        },
+        "target_days_per_week": {
+          "name": "target_days_per_week",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "region": {
+          "name": "region",
+          "type": "region",
+          "typeSchema": "inoffice",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'england-and-wales'"
+        },
+        "onboarding_complete": {
+          "name": "onboarding_complete",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "inoffice.attendance_mode": {
+      "name": "attendance_mode",
+      "schema": "inoffice",
+      "values": [
+        "percentage",
+        "days"
+      ]
+    },
+    "inoffice.region": {
+      "name": "region",
+      "schema": "inoffice",
+      "values": [
+        "england-and-wales",
+        "scotland",
+        "northern-ireland"
+      ]
+    },
+    "inoffice.status": {
+      "name": "status",
+      "schema": "inoffice",
+      "values": [
+        "home",
+        "office",
+        "ooo",
+        "sick",
+        "bank"
+      ]
+    }
+  },
+  "schemas": {
+    "inoffice": "inoffice"
+  },
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -9,8 +9,7 @@ playwright-report/
 .vite/
 
 # Environment files (secrets). Commit .env.example only.
-.env
-.env.*
+.env*
 !.env.example
 
 # OS / editor
