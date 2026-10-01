@@ -163,8 +163,14 @@ test('rapid clicks on a day send one save with the final status', async ({ page 
   page.on('request', r => { if (r.url().includes('/api/entries/2026-09-15')) writes.push(`${r.method()} ${r.postData() ?? ''}`); });
   const day = page.locator('[data-date="2026-09-15"]');
   // blank → office → home → ooo
+  const saved = page.waitForResponse(r => r.url().includes('/api/entries/2026-09-15') && r.ok());
   await day.click(); await day.click(); await day.click();
   await expect(day).toHaveAttribute('title', 'OOO');
+  // No toast until the save has actually gone through, then one toast with the final status.
+  await expect(page.locator('[data-slot="toast"]')).toHaveCount(0);
+  await saved;
+  await expect(page.locator('[data-slot="toast"]')).toHaveCount(1);
+  await expect(page.locator('[data-slot="toast"]')).toContainText('Tue 15 Sept: OOO');
   await expect.poll(async () => (await (await page.request.get('/api/data')).json()).entries['2026-09-15']).toBe('ooo');
   expect(writes).toEqual(['PUT {"status":"ooo"}']);
 });

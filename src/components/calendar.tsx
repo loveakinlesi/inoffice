@@ -71,8 +71,10 @@ function DayCell({ day }: { day: Date }) {
     if (holidayName) return;
     const current = hasEntry ? state.entries[key] : 'blank';
     const next = CYCLE[(CYCLE.indexOf(current as (typeof CYCLE)[number]) + 1) % CYCLE.length];
-    if (!state.setEntry(key, next === 'blank' ? null : next)) return;
-    showDayToast(day, next === 'blank' ? 'Cleared' : STATUS_META[next].label);
+    // The toast confirms the save, so it appears once the change is stored (after the request when signed in).
+    if (!state.setEntry(key, next === 'blank' ? null : next, {
+      onSaved: () => showDayToast(day, next === 'blank' ? 'Cleared' : STATUS_META[next].label),
+    })) return;
     track('attendance_status_changed');
   };
 

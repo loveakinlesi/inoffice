@@ -44,7 +44,11 @@ export interface AttendanceContextValue extends StoredState {
    * shown immediately and saved in the background; a failed save reloads the account's data.
    */
   saveSettings: (settings: Settings) => boolean;
-  setEntry: (date: string, status: Status | null) => boolean;
+  /**
+   * `onSaved` runs once the change is actually stored: immediately for guests (this browser), and
+   * after the debounced request succeeds when signed in (only for the day's final status).
+   */
+  setEntry: (date: string, status: Status | null, options?: { onSaved?: () => void }) => boolean;
   resetMonth: (date: Date) => boolean;
   importBackup: (data: BackupData) => boolean;
   resetAll: () => boolean;
@@ -105,7 +109,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   const accountRequest = useRef(0);
   // Debounced day saves: the latest unsent status per date, and each date's chain of in-flight saves
   // (saves for the same date run one after another so an older one can never overwrite a newer one).
-  const pendingSaves = useRef(new Map<string, { status: Status | null; timer: ReturnType<typeof setTimeout> }>());
+  const pendingSaves = useRef(new Map<string, { status: Status | null; timer: ReturnType<typeof setTimeout>; onSaved?: () => void }>());
   const saveChains = useRef(new Map<string, Promise<void>>());
   const onSaveError = useRef<(error: unknown) => void>(() => {});
 
@@ -117,7 +121,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     const previous = saveChains.current.get(date) ?? Promise.resolve();
     const next = previous
       .then(() => (pending.status === null ? api.deleteEntry(date, { keepalive }) : api.setEntry(date, pending.status, { keepalive })))
-      .then(() => {}, error => onSaveError.current(error));
+      .then(() => pending.onSaved?.(), error => onSaveError.current(error));
     saveChains.current.set(date, next);
     void next.then(() => { if (saveChains.current.get(date) === next) saveChains.current.delete(date); });
     return next;
@@ -266,7 +270,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         setStored(s => ({ ...s, settings }));
         return true;
       },
-      setEntry: (date, status) => {
+      setEntry: (date, status, { onSaved } = {}) => {
         const update = (entries: Entries) => {
           const next = { ...entries };
           if (status === null) delete next[date]; else next[date] = status;
@@ -277,12 +281,13 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
           // Debounce per day: restart this day's timer and remember only its latest status.
           const existing = pendingSaves.current.get(date);
           if (existing) clearTimeout(existing.timer);
-          pendingSaves.current.set(date, { status, timer: setTimeout(() => void sendEntry(date), ENTRY_SAVE_DELAY_MS) });
+          pendingSaves.current.set(date, { status, onSaved, timer: setTimeout(() => void sendEntry(date), ENTRY_SAVE_DELAY_MS) });
           return true;
         }
         const entries = update(stored.entries);
         if (!persist(() => saveEntries(entries))) return false;
         setStored(s => ({ ...s, entries }));
+        onSaved?.();
         return true;
       },
       resetMonth: date => {
