@@ -25,11 +25,11 @@ export function LandingPage() {
           Continue as guest
         </Link>
       </div>
-      <p className="mt-6 text-sm leading-6 text-muted-foreground">
-        {google
-          ? 'Sign in to sync your attendance across devices. As a guest, it stays in this browser and you can sign in later.'
-          : 'Your attendance stays in this browser. No account needed.'}
-      </p>
+      {google && (
+        <p className="mt-6 text-sm leading-6 text-muted-foreground">
+          Sign in to sync your attendance across devices. As a guest, it stays in this browser and you can sign in later.
+        </p>
+      )}
     </main>
   );
 }

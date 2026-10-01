@@ -119,7 +119,7 @@ export function Onboarding() {
             </FieldGroup>
           </form>
       </div>
-      <p className="mt-8 text-xs leading-5 text-muted-foreground">{mode === 'account' ? 'Your attendance is saved to your account.' : 'Your attendance stays in this browser. No account needed.'}</p>
+      {mode === 'account' && <p className="mt-8 text-xs leading-5 text-muted-foreground">Your attendance is saved to your account.</p>}
       {settings.onboardingComplete && (
         <Button variant="link" className="mt-2 self-start px-0" onClick={finish}>Cancel setup</Button>
       )}
