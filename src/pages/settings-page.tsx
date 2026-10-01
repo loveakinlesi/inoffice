@@ -1,9 +1,8 @@
-import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button.tsx';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.tsx';
+import { cn } from '@/lib/utils.ts';
 import { FieldGroup } from '@/components/ui/field.tsx';
-import { Separator } from '@/components/ui/separator.tsx';
 import { Spinner } from '@/components/ui/spinner.tsx';
 import { toast } from '@/components/ui/toast.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx';
@@ -17,6 +16,31 @@ import { holidayCoverage } from '@/lib/holidays.ts';
 import { validateBackup } from '@/lib/validation.ts';
 import { track } from '@/lib/analytics.ts';
 import { useAttendance } from '@/state/attendance.tsx';
+
+function SettingsGroup({ title, description, children, className }: { title: string; description?: string; children: ReactNode; className?: string }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="px-1">
+        <h2 className="text-sm font-semibold">{title}</h2>
+        {description && <p className="text-sm leading-6 text-muted-foreground">{description}</p>}
+      </div>
+      <div className={cn('divide-y overflow-hidden rounded-2xl bg-card shadow-xs ring-1 ring-foreground/[0.07]', className)}>{children}</div>
+    </section>
+  );
+}
+
+/** A labelled setting with its control on the right; `stack` puts a wide control below on small screens. */
+function SettingsRow({ title, description, action, id, stack = false }: { title: ReactNode; description?: ReactNode; action: ReactNode; id?: string; stack?: boolean }) {
+  return (
+    <div className={cn('flex items-center justify-between gap-4 px-4 py-3.5', stack && 'flex-col items-stretch gap-3 sm:flex-row sm:items-center')}>
+      <div className="min-w-0">
+        <p className="text-sm font-medium">{title}</p>
+        {description && <p id={id} className="text-sm leading-5 text-muted-foreground">{description}</p>}
+      </div>
+      <div className={cn('shrink-0', stack && '*:w-full sm:*:w-auto')}>{action}</div>
+    </div>
+  );
+}
 
 /** Lets a signed-in user sync this browser's guest data later (e.g. after choosing "Not now"). */
 function SyncLocalData() {
@@ -33,13 +57,16 @@ function SyncLocalData() {
     setPending(false);
   };
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
-      <p className="text-sm leading-6 text-muted-foreground">This device has {what} from before you signed in.</p>
-      <Button variant="outline" disabled={pending} onClick={sync}>
-        {pending && <Spinner data-icon="inline-start" />}
-        Sync to account
-      </Button>
-    </div>
+    <SettingsRow
+      title="This device"
+      description={`This device has ${what} from before you signed in.`}
+      action={(
+        <Button variant="outline" disabled={pending} onClick={sync}>
+          {pending && <Spinner data-icon="inline-start" />}
+          Sync to account
+        </Button>
+      )}
+    />
   );
 }
 
@@ -47,36 +74,35 @@ function AccountSection() {
   const config = useAuthConfig();
   const { data: session, isPending } = useSession();
   if (isPending || !config || (!session && !config.providers.google)) return null;
+  if (!session) {
+    return (
+      <SettingsGroup title="Account">
+        <SettingsRow
+          title="Sync across devices"
+          description="Back up your attendance and use it anywhere. You can keep using InOffice without an account."
+          action={<SignInButton label="Sign in with Google" size="default" />}
+          stack
+        />
+      </SettingsGroup>
+    );
+  }
   return (
-    <>
-      <section className="flex flex-col gap-3">
-        <h3 className="font-medium">Account</h3>
-        {session ? (
-          <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <Avatar size="lg">
-                {session.user.image && <AvatarImage src={session.user.image} alt="" referrerPolicy="no-referrer" />}
-                <AvatarFallback>{initials(session.user.name)}</AvatarFallback>
-              </Avatar>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{session.user.name}</p>
-                <p className="truncate text-sm text-muted-foreground">{session.user.email}</p>
-              </div>
-            </div>
-            <Button variant="outline" onClick={() => void signOutAndNotify()}>Sign out</Button>
+    <SettingsGroup title="Account">
+      <div className="flex items-center justify-between gap-4 px-4 py-3.5">
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar size="lg">
+            {session.user.image && <AvatarImage src={session.user.image} alt="" referrerPolicy="no-referrer" />}
+            <AvatarFallback>{initials(session.user.name)}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{session.user.name}</p>
+            <p className="truncate text-sm text-muted-foreground">{session.user.email}</p>
           </div>
-          <SyncLocalData />
-          </>
-        ) : (
-          <>
-            <p className="text-sm leading-6 text-muted-foreground">Sign in to back up your attendance and use it on any device. You can keep using InOffice without an account.</p>
-            <SignInButton label="Sign in with Google" className="self-start" />
-          </>
-        )}
-      </section>
-      <Separator />
-    </>
+        </div>
+        <Button variant="outline" onClick={() => void signOutAndNotify()}>Sign out</Button>
+      </div>
+      <SyncLocalData />
+    </SettingsGroup>
   );
 }
 
@@ -91,13 +117,15 @@ function PreferencesForm() {
   };
 
   return (
-    <form id="settingsForm" onSubmit={submit}>
-      <FieldGroup>
-        <TargetControls value={target} onChange={setTarget} />
-        <RegionControl value={region} onChange={setRegion} />
-        <Button type="submit" size="lg" className="w-full">Save settings</Button>
-      </FieldGroup>
-    </form>
+    <SettingsGroup title="Attendance" description="Your office target and the bank holidays that don’t count as working days.">
+      <form id="settingsForm" onSubmit={submit} className="p-4">
+        <FieldGroup>
+          <TargetControls value={target} onChange={setTarget} />
+          <RegionControl value={region} onChange={setRegion} />
+          <Button type="submit" size="lg" className="w-full sm:w-auto sm:self-end">Save settings</Button>
+        </FieldGroup>
+      </form>
+    </SettingsGroup>
   );
 }
 
@@ -109,14 +137,19 @@ function HolidaySection() {
     try { await state.refreshHolidays(true); } finally { setRefreshing(false); }
   };
   return (
-    <section className="flex flex-col items-start gap-3">
-      <h3 className="font-medium">Bank holidays</h3>
-      <p id="holidaySettingsStatus" className="text-sm leading-6 text-muted-foreground">{state.holidayMessage + holidayCoverage(state)}</p>
-      <Button variant="outline" disabled={refreshing} onClick={refresh}>
-        {refreshing && <Spinner data-icon="inline-start" />}
-        {refreshing ? 'Refreshing…' : 'Refresh bank holidays'}
-      </Button>
-    </section>
+    <SettingsGroup title="Bank holidays">
+      <SettingsRow
+        title="UK bank holidays"
+        id="holidaySettingsStatus"
+        description={state.holidayMessage + holidayCoverage(state)}
+        action={(
+          <Button variant="outline" disabled={refreshing} onClick={refresh} aria-label="Refresh bank holidays">
+            {refreshing && <Spinner data-icon="inline-start" />}
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </Button>
+        )}
+      />
+    </SettingsGroup>
   );
 }
 
@@ -169,57 +202,68 @@ function DataSection({ confirm }: { confirm: (r: ConfirmRequest) => void }) {
   };
 
   return (
-    <section className="flex flex-col gap-3">
-      <h3 className="font-medium">Data</h3>
-      <p className="text-sm leading-6 text-muted-foreground">
-        {account
-          ? 'Your attendance is saved to your account and available wherever you sign in. Export a backup to keep your own copy. Importing replaces your account data.'
-          : 'Attendance is saved only in this browser. Export a backup to keep a copy or move to another device. Importing replaces your current data.'}
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={exportBackup}>Export JSON</Button>
-        <Button variant="outline" onClick={() => fileInput.current?.click()}>Import JSON</Button>
+    <>
+      <SettingsGroup
+        title="Data"
+        description={account
+          ? 'Your attendance is saved to your account and available wherever you sign in.'
+          : 'Attendance is saved only in this browser. Export a backup to keep a copy or move to another device.'}
+      >
+        <SettingsRow title="Export backup" description="Download your settings and attendance as JSON." action={<Button variant="outline" onClick={exportBackup}>Export JSON</Button>} />
+        <SettingsRow
+          title="Restore backup"
+          description={account ? 'Replaces your account data with a backup.' : 'Replaces the data in this browser with a backup.'}
+          action={<Button variant="outline" onClick={() => fileInput.current?.click()}>Import JSON</Button>}
+        />
         <input ref={fileInput} id="importInput" type="file" accept=".json,application/json" hidden onChange={importBackup} />
-      </div>
-      {importError && <p id="importError" role="alert" className="text-sm text-destructive">{importError}</p>}
-      <Separator className="my-1" />
-      <div className="flex flex-col items-start gap-2">
-        <Button
-          variant="outline"
-          onClick={() => confirm({
-            title: 'Reset current month?',
-            description: `Reset all manual attendance entries for ${month}? Automatic bank holidays will remain.`,
-            confirmLabel: 'Reset month',
-            destructive: true,
-            onConfirm: () => {
-              if (!state.resetMonth(state.viewDate)) return;
-              toast.add({ title: 'Current month reset' });
-              navigate('/');
-            },
-          })}
-        >
-          Reset current month
-        </Button>
-        <p className="text-xs text-muted-foreground">Clears manual entries for {month}.</p>
-        <Button variant="outline" className="mt-2" onClick={() => navigate('/onboarding')}>Run setup again</Button>
-        <p className="text-xs text-muted-foreground">Your attendance history will be preserved.</p>
-        <Button
-          variant="destructive"
-          className="mt-2"
-          onClick={() => confirm({
-            title: 'Reset all data?',
-            description: account
-              ? 'Delete all InOffice settings and attendance history from your account? This cannot be undone. Your sign-in stays active.'
-              : 'Delete all InOffice settings, attendance history and cached bank holidays from this browser? This cannot be undone.',
-            confirmLabel: 'Delete everything',
-            destructive: true,
-            onConfirm: () => { if (state.resetAll()) toast.add({ title: 'All InOffice data reset' }); },
-          })}
-        >
-          Reset all InOffice data
-        </Button>
-      </div>
-    </section>
+        {importError && <p id="importError" role="alert" className="px-4 py-3 text-sm text-destructive">{importError}</p>}
+        <SettingsRow
+          title="Clear this month"
+          description={`Removes manual entries for ${month}.`}
+          action={(
+            <Button
+              variant="outline"
+              onClick={() => confirm({
+                title: 'Clear this month?',
+                description: `Reset all manual attendance entries for ${month}? Automatic bank holidays will remain.`,
+                confirmLabel: 'Clear month',
+                destructive: true,
+                onConfirm: () => {
+                  if (!state.resetMonth(state.viewDate)) return;
+                  toast.add({ title: `${month} cleared` });
+                  navigate('/');
+                },
+              })}
+            >
+              Clear
+            </Button>
+          )}
+        />
+        <SettingsRow title="Run setup again" description="Change your target step by step. History is kept." action={<Button variant="outline" onClick={() => navigate('/onboarding')}>Run setup</Button>} />
+      </SettingsGroup>
+      <SettingsGroup title="Danger zone">
+        <SettingsRow
+          title="Delete all data"
+          description={account ? 'Deletes your settings and attendance from your account.' : 'Deletes everything InOffice stores in this browser.'}
+          action={(
+            <Button
+              variant="destructive"
+              onClick={() => confirm({
+                title: 'Delete all data?',
+                description: account
+                  ? 'Delete all InOffice settings and attendance history from your account? This cannot be undone. Your sign-in stays active.'
+                  : 'Delete all InOffice settings, attendance history and cached bank holidays from this browser? This cannot be undone.',
+                confirmLabel: 'Delete everything',
+                destructive: true,
+                onConfirm: () => { if (state.resetAll()) toast.add({ title: 'All InOffice data deleted' }); },
+              })}
+            >
+              Delete
+            </Button>
+          )}
+        />
+      </SettingsGroup>
+    </>
   );
 }
 
@@ -227,21 +271,19 @@ export function SettingsPage() {
   const { settings } = useAttendance();
   const [request, setRequest] = useState<ConfirmRequest | null>(null);
   return (
-    <Card id="settingsPage" aria-labelledby="settingsPageTitle" className="mx-auto w-full max-w-2xl shadow-card">
-      <CardHeader className="border-b">
-        <CardTitle id="settingsPageTitle" className="text-xl font-semibold tracking-tight">Settings</CardTitle>
-        <CardDescription>Manage your target, bank holiday calendar, and local data.</CardDescription>
-      </CardHeader>
-      <CardContent id="settingsContentPage" className="flex flex-col gap-6">
+    <div id="settingsPage" aria-labelledby="settingsPageTitle" className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+      <div className="px-1">
+        <h1 id="settingsPageTitle" className="text-2xl font-semibold tracking-tight">Settings</h1>
+        <p className="text-sm text-muted-foreground">Your account, office target, bank holidays and data.</p>
+      </div>
+      <div id="settingsContentPage" className="flex flex-col gap-8">
         <AccountSection />
         {/* Remount when settings change elsewhere (import, setup, another tab) so the draft resets. */}
         <PreferencesForm key={JSON.stringify(settings)} />
-        <Separator />
         <HolidaySection />
-        <Separator />
         <DataSection confirm={setRequest} />
-      </CardContent>
+      </div>
       <ConfirmDialog request={request} onClose={() => setRequest(null)} />
-    </Card>
+    </div>
   );
 }

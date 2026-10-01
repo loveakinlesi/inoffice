@@ -33,7 +33,7 @@ function Header() {
             id="overviewBtn"
             to="/overview"
             onClick={() => track('year_overview_opened')}
-            className={({ isActive }) => cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'hidden sm:inline-flex', isActive && 'bg-muted')}
+            className={({ isActive }) => cn(buttonVariants({ variant: 'outline' }), 'hidden sm:inline-flex', isActive && 'bg-muted')}
           >
             Year overview
           </NavLink>
@@ -42,7 +42,7 @@ function Header() {
             to="/settings"
             aria-label="Open settings"
             onClick={() => track('settings_opened')}
-            className={({ isActive }) => cn(buttonVariants({ variant: 'outline', size: 'icon-lg' }), isActive && 'bg-muted')}
+            className={({ isActive }) => cn(buttonVariants({ variant: 'outline', size: 'icon' }), isActive && 'bg-muted')}
           >
             <SettingsIcon />
           </NavLink>

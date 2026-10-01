@@ -11,7 +11,7 @@ async function setup(page,mode='percentage') {
  if(mode==='days') {await page.getByRole('radio',{name:'Days per week'}).check();await page.getByLabel('Office days per week',{exact:true}).selectOption('3');}
  await page.getByRole('button',{name:'Continue',exact:true}).click();
  await page.getByRole('button',{name:'Finish setup'}).click();
- await expect(page.getByText(mode==='days'?'Your target is 3 office days per week.':'Your target is 50% of working days.')).toBeVisible();
+ await expect(page.getByText(mode==='days'?'3 office days per week':'50% of working days',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Open InOffice',exact:true}).click();
 }
 test.beforeEach(async({page})=>{
@@ -47,12 +47,12 @@ test('days setup, backup roundtrip, invalid import, rerun and resets',async({pag
  const download=page.waitForEvent('download');await page.getByRole('button',{name:'Export JSON'}).click();const file=await download;const path=await file.path();
  await page.locator('#settingsContentPage #importInput').setInputFiles({name:'bad.json',mimeType:'application/json',buffer:Buffer.from('{"entries":null}')});await expect(page.locator('#settingsContentPage #importError')).toBeVisible();
  const confirm=name=>page.getByRole('alertdialog').getByRole('button',{name}).click();
- await page.getByRole('button',{name:'Reset current month',exact:true}).click();await confirm('Reset month');await expect(page.locator('[data-date="2026-09-08"]')).toHaveAttribute('title','Undecided');
+ await page.getByRole('button',{name:'Clear',exact:true}).click();await confirm('Clear month');await expect(page.locator('[data-date="2026-09-08"]')).toHaveAttribute('title','Undecided');
  await page.getByRole('link',{name:'Open settings'}).click();await page.locator('#settingsContentPage #importInput').setInputFiles(path);await confirm('Replace data');await expect(page.locator('[data-date="2026-09-08"]')).toHaveAttribute('title','Office');
- await page.getByRole('link',{name:'Open settings'}).click();await page.getByRole('button',{name:'Run setup again'}).click();await expect(page.getByRole('heading',{name:'Welcome to InOffice'})).toBeVisible();
+ await page.getByRole('link',{name:'Open settings'}).click();await page.getByRole('button',{name:'Run setup',exact:true}).click();await expect(page.getByRole('heading',{name:'Welcome to InOffice'})).toBeVisible();
  const setupForm=page.locator('#setupForm');
  await setupForm.getByRole('radio',{name:'Percentage',exact:false}).check();await setupForm.locator('input[name="targetPercentage"]').fill('75');await setupForm.getByRole('button',{name:'Continue',exact:true}).click();await setupForm.getByRole('button',{name:'Finish setup'}).click();await page.getByRole('button',{name:'Open InOffice',exact:true}).click();await expect(page.locator('[data-date="2026-09-08"]')).toHaveAttribute('title','Office');
- await page.getByRole('link',{name:'Open settings'}).click();await page.getByRole('button',{name:'Reset all InOffice data'}).click();await confirm('Delete everything');await expect(page.getByRole('heading',{name:'Welcome to InOffice'})).toBeVisible();
+ await page.getByRole('link',{name:'Open settings'}).click();await page.getByRole('button',{name:'Delete',exact:true}).click();await confirm('Delete everything');await expect(page.getByRole('heading',{name:'Welcome to InOffice'})).toBeVisible();
  expect(await page.evaluate(()=>localStorage.getItem('inoffice.entries.v1'))).toBeNull();
 });
 test('cached holiday fallback and legacy migration',async({page})=>{
@@ -75,7 +75,7 @@ test('desktop and mobile visual layout',async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'test-results/dashboard-mobile.png',fullPage:true});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.getByRole('link',{name:'Open settings'}).click();await page.screenshot({path:'test-results/settings-mobile.png',fullPage:true});
- await page.getByRole('button',{name:'Run setup again'}).click();await page.screenshot({path:'test-results/onboarding-mobile.png',fullPage:true});
+ await page.getByRole('button',{name:'Run setup',exact:true}).click();await page.screenshot({path:'test-results/onboarding-mobile.png',fullPage:true});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 

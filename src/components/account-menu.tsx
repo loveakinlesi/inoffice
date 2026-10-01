@@ -38,12 +38,12 @@ export function AccountMenu() {
   const config = useAuthConfig();
   const { data: session, isPending } = useSession();
   if (isPending || !config) return null;
-  if (!session) return config.providers.google ? <SignInButton /> : null;
+  if (!session) return config.providers.google ? <SignInButton size="default" /> : null;
 
   const { name, email, image } = session.user;
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="ghost" size="icon-lg" aria-label="Account menu" className="rounded-full" />}>
+      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label="Account menu" className="rounded-full" />}>
         <Avatar>
           {image && <AvatarImage src={image} alt="" referrerPolicy="no-referrer" />}
           <AvatarFallback>{initials(name)}</AvatarFallback>

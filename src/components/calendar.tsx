@@ -95,7 +95,7 @@ export function Calendar() {
   });
 
   return (
-    <section id="calendarCard" className="calendar-card overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+    <section id="calendarCard" className="calendar-card overflow-hidden rounded-2xl bg-card shadow-xs ring-1 ring-foreground/[0.07]">
       <div className="calendar-header border-b border-slate-200 px-4 py-4">
         <CalendarNav />
       </div>

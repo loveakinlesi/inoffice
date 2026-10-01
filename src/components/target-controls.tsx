@@ -92,10 +92,10 @@ export function TargetControls({ value, onChange }: { value: TargetDraft; onChan
   );
 }
 
-export function RegionControl({ value, onChange }: { value: Region; onChange: (r: Region) => void }) {
+export function RegionControl({ value, onChange, prominent = false }: { value: Region; onChange: (r: Region) => void; prominent?: boolean }) {
   return (
     <Field>
-      <FieldLabel htmlFor="region" className="text-base">Which UK bank holiday calendar should we use?</FieldLabel>
+      <FieldLabel htmlFor="region" className={prominent ? 'text-lg font-semibold tracking-tight' : undefined}>Which UK bank holiday calendar should we use?</FieldLabel>
       <NativeSelect id="region" name="region" className="w-full" value={value} onChange={e => onChange(e.target.value as Region)}>
         {Object.entries(REGION_NAMES).map(([v, n]) => <NativeSelectOption key={v} value={v}>{n}</NativeSelectOption>)}
       </NativeSelect>
