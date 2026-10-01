@@ -165,6 +165,7 @@ Without any environment variables, InOffice deploys as a guest-only app: `/api/c
 2. Run `pnpm db:migrate` against that database.
 3. Set `BETTER_AUTH_SECRET` (`openssl rand -base64 32`), and `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` from a Google OAuth client whose redirect URI is `https://<your-domain>/api/auth/callback/google`.
 4. If you serve the app from a custom domain, add it to `AUTH_ALLOWED_HOSTS`.
+5. Optional, for sign-in on preview deployments: set the same random `OAUTH_PROXY_SECRET` in Preview and Production, and set `AUTH_TRUSTED_ORIGINS` in Production to a pattern matching only your own previews (for example `https://inoffice-*-<team>.vercel.app`). Previews then send Google to the production callback, which hands the session back encrypted. Only the production redirect URI needs registering with Google.
 
 To collect analytics, [enable Web Analytics in the Vercel project](https://vercel.com/docs/analytics/quickstart) and deploy. Custom-event availability depends on your Vercel plan. Analytics integration lives in `src/lib/analytics.ts` and is disabled during development.
 
