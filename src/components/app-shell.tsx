@@ -3,6 +3,7 @@ import { BarChart3Icon, CalendarIcon, SettingsIcon } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 import { buttonVariants } from '@/components/ui/button.tsx';
 import { track } from '@/lib/analytics.ts';
+import { AccountMenu } from '@/components/account-menu.tsx';
 import { useAttendance } from '@/state/attendance.tsx';
 
 const TABS = [
@@ -26,6 +27,7 @@ function Header() {
           </div>
         </Link>
         <div className="header-actions flex items-center gap-2">
+          <AccountMenu />
           <NavLink
             id="overviewBtn"
             to="/overview"

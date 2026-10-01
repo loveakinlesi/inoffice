@@ -6,7 +6,10 @@ import { FieldGroup } from '@/components/ui/field.tsx';
 import { Separator } from '@/components/ui/separator.tsx';
 import { Spinner } from '@/components/ui/spinner.tsx';
 import { toast } from '@/components/ui/toast.tsx';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx';
 import { ConfirmDialog, type ConfirmRequest } from '@/components/confirm-dialog.tsx';
+import { SignInButton, initials, signOutAndNotify } from '@/components/account-menu.tsx';
+import { useAuthConfig, useSession } from '@/lib/auth-client.ts';
 import { useSetup } from '@/components/onboarding.tsx';
 import { RegionControl, TargetControls, applyTargetDraft, toTargetDraft } from '@/components/target-controls.tsx';
 import { formatMonth } from '@/lib/attendance.ts';
@@ -14,6 +17,40 @@ import { holidayCoverage } from '@/lib/holidays.ts';
 import { validateBackup } from '@/lib/validation.ts';
 import { track } from '@/lib/analytics.ts';
 import { useAttendance } from '@/state/attendance.tsx';
+
+function AccountSection() {
+  const config = useAuthConfig();
+  const { data: session, isPending } = useSession();
+  if (isPending || !config || (!session && !config.providers.google)) return null;
+  return (
+    <>
+      <section className="flex flex-col gap-3">
+        <h3 className="font-medium">Account</h3>
+        {session ? (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <Avatar size="lg">
+                {session.user.image && <AvatarImage src={session.user.image} alt="" referrerPolicy="no-referrer" />}
+                <AvatarFallback>{initials(session.user.name)}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{session.user.name}</p>
+                <p className="truncate text-sm text-muted-foreground">{session.user.email}</p>
+              </div>
+            </div>
+            <Button variant="outline" onClick={() => void signOutAndNotify()}>Sign out</Button>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm leading-6 text-muted-foreground">Sign in to back up your attendance and use it on any device. You can keep using InOffice without an account.</p>
+            <SignInButton label="Sign in with Google" className="self-start" />
+          </>
+        )}
+      </section>
+      <Separator />
+    </>
+  );
+}
 
 function PreferencesForm() {
   const { settings, saveSettings } = useAttendance();
@@ -164,6 +201,7 @@ export function SettingsPage() {
         <CardDescription>Manage your target, bank holiday calendar, and local data.</CardDescription>
       </CardHeader>
       <CardContent id="settingsContentPage" className="flex flex-col gap-6">
+        <AccountSection />
         {/* Remount when settings change elsewhere (import, setup, another tab) so the draft resets. */}
         <PreferencesForm key={JSON.stringify(settings)} />
         <Separator />

@@ -12,6 +12,9 @@ app.get('/health', async c => {
   return c.json({ ok: database === 'ok', database }, database === 'ok' ? 200 : 503);
 });
 
+// Public, non-secret capabilities so the UI can hide sign-in when no provider is configured.
+app.get('/config', c => c.json({ providers: { google: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) } }));
+
 // Better Auth owns everything under /api/auth (sign-in, OAuth callbacks, session, sign-out).
 app.on(['GET', 'POST'], '/auth/*', c => auth.handler(c.req.raw));
 
