@@ -2,7 +2,7 @@
 
 **Stay on top of your hybrid office attendance.**
 
-InOffice is a lightweight attendance tracker for hybrid workers. Set your office target, record your days, and see what you need to meet your monthly goal. Your attendance stays in your browser—no account, database, or backend required.
+InOffice is a lightweight attendance tracker for hybrid workers. Set your office target, record your days, and see what you need to meet your monthly goal. Use it as a guest and your attendance stays in your browser, or sign in with Google to keep it in sync across devices.
 
 ## Features
 
@@ -12,6 +12,7 @@ InOffice is a lightweight attendance tracker for hybrid workers. Set your office
 - **UK bank holidays:** England & Wales, Scotland, and Northern Ireland, with cached fallback and manual overrides.
 - **Progress tracking:** see your progress against the monthly office target.
 - **Year overview:** compare all twelve months and jump directly to a month.
+- **Optional account:** sign in with Google to save attendance to your account and use it on any device. Guest data can be imported on first sign-in.
 - **Backup and restore:** export or import settings, attendance, and cached holidays as JSON.
 - **Responsive and accessible:** compact mobile cards, keyboard-accessible dialogs, visible focus states, and reduced-motion support.
 
@@ -46,7 +47,7 @@ pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
-Browser tests cover onboarding, both target modes, calendar interactions, persistence, settings, backup import/export, resets, holiday fallback, and responsive layouts. One test calls the live GOV.UK service and requires internet access. To use an existing Chromium installation, set `PLAYWRIGHT_EXECUTABLE_PATH` to its executable.
+Browser tests cover onboarding, both target modes, calendar interactions, persistence, settings, backup import/export, resets, holiday fallback, responsive layouts, and signed-in sync, offline behaviour and first-sign-in import. They start their own dev server on port 5174 with an in-memory PGlite database and a test-only sign-in route, so they need no credentials and never touch real data. API tests (`tests/api.test.ts`) also run against PGlite. One test calls the live GOV.UK service and requires internet access. To use an existing Chromium installation, set `PLAYWRIGHT_EXECUTABLE_PATH` to its executable.
 
 ### Database (accounts and sync)
 
@@ -105,6 +106,8 @@ The API covers a limited set of years. InOffice shows a notice when the selected
 
 ## Privacy and storage
 
+### As a guest
+
 Attendance records, preferences, setup completion, and the holiday cache are stored in **LocalStorage**, using these keys:
 
 ```text
@@ -113,13 +116,27 @@ inoffice.entries.v1
 inoffice.holidays.v1
 ```
 
-There is no authentication, cloud sync, or server-side attendance storage. Data belongs to the current browser and site origin. Clearing browser data or switching devices does not transfer your records; use JSON export/import to keep a backup or move them.
+Guest data belongs to the current browser and site origin. Clearing browser data or switching devices does not transfer your records; use JSON export/import to keep a backup or move them.
+
+### When signed in
+
+Signing in uses Google through [Better Auth](https://www.better-auth.com). InOffice stores your Google name, email address and profile picture URL, a session, and your settings and attendance entries in Postgres. Holiday data stays in the browser.
+
+- The account is the source of truth while you are signed in. Guest data in the browser is left untouched and is used again after you sign out.
+- On first sign-in, InOffice offers to import this browser's guest data. Import merges: anything already in your account is kept. The local copy is not deleted.
+- Changes are saved immediately. They are not queued offline: while offline, InOffice shows a notice and blocks changes until you reconnect.
+- **Reset all InOffice data** deletes your settings and attendance from the account. Deleting the account removes its data too.
+
+Every API route requires a valid session, scopes queries to that user, validates input with the same rules as the client, and rejects cross-site writes.
+
+### Everywhere
 
 Imports are validated before confirmation and replacement. Exported backups contain attendance history, so avoid committing them to a public repository. Reset actions require confirmation; rerunning setup preserves attendance history.
 
 The app also makes these network requests:
 
 - **GOV.UK:** downloads the UK holiday calendars.
+- **Google:** only when you choose to sign in.
 - **Vercel Web Analytics:** records production page views and allowlisted product interactions. Custom events contain no attendance dates, statuses, targets, regions, or backup contents. Page URLs are reduced to the site origin. Analytics failure does not prevent use of the app.
 
 Legacy `office-attendance.*.v1` data is migrated automatically when present on the same origin. Data from a local `file://` page generally cannot be accessed from a hosted site.
@@ -140,7 +157,14 @@ Alternatively, deploy from the project directory:
 pnpm dlx vercel
 ```
 
-No environment variables or application server are required. SPA rewrites preserve the assets and analytics routes.
+`api/index.ts` runs the Hono API as a Vercel Function; `vercel.json` rewrites `/api/*` to it and everything else (except assets and analytics) to the SPA.
+
+Without any environment variables, InOffice deploys as a guest-only app: `/api/config` reports no sign-in provider and the sign-in UI stays hidden. To enable accounts:
+
+1. Add Supabase from the Vercel Marketplace (or set `POSTGRES_URL` and `POSTGRES_URL_NON_POOLING` for any Postgres).
+2. Run `pnpm db:migrate` against that database.
+3. Set `BETTER_AUTH_SECRET` (`openssl rand -base64 32`), and `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` from a Google OAuth client whose redirect URI is `https://<your-domain>/api/auth/callback/google`.
+4. If you serve the app from a custom domain, add it to `AUTH_ALLOWED_HOSTS`.
 
 To collect analytics, [enable Web Analytics in the Vercel project](https://vercel.com/docs/analytics/quickstart) and deploy. Custom-event availability depends on your Vercel plan. Analytics integration lives in `src/lib/analytics.ts` and is disabled during development.
 
@@ -171,7 +195,7 @@ src/
     constants.ts          Status and region definitions
     analytics.ts          Optional privacy-safe telemetry
   styles.css              Tailwind, shadcn theme and shared styles
-tests/                    Unit and browser tests
+tests/                    Unit, API (PGlite) and browser tests
 ```
 
 Built with Vite, React, TypeScript, Tailwind CSS and [shadcn/ui](https://ui.shadcn.com) (Base UI primitives).

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { sql } from 'drizzle-orm';
-import { db, prepareDatabase } from './db/client.ts';
+import { databaseConfigured, db, prepareDatabase } from './db/client.ts';
 import { allowedHosts, enableTestUtils, getAuth } from './auth.ts';
 import { dataRoutes } from './routes/data.ts';
 import { testAuthRoutes } from './routes/test-auth.ts';
@@ -9,7 +9,7 @@ import { testAuthRoutes } from './routes/test-auth.ts';
 export const app = new Hono().basePath('/api');
 
 // Connect (or, in browser tests, create the in-memory database) before handling any request.
-app.use(async (_c, next) => { await prepareDatabase(); await next(); });
+app.use(async (_c, next) => { if (databaseConfigured()) await prepareDatabase(); await next(); });
 
 app.get('/health', async c => {
   let database: 'ok' | 'error' = 'ok';
@@ -19,6 +19,11 @@ app.get('/health', async c => {
 
 // Public, non-secret capabilities so the UI can hide sign-in when no provider is configured.
 app.get('/config', c => c.json({ providers: { google: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) } }));
+
+// Without a database the app runs guest-only; answer account routes cleanly instead of erroring.
+for (const path of ['/auth/*', '/data', '/settings', '/entries', '/entries/*', '/import']) {
+  app.use(path, async (c, next) => (databaseConfigured() ? next() : c.json({ error: 'Accounts aren’t configured on this server.' }, 503)));
+}
 
 // Better Auth owns everything under /api/auth (sign-in, OAuth callbacks, session, sign-out).
 app.on(['GET', 'POST'], '/auth/*', c => getAuth().handler(c.req.raw));

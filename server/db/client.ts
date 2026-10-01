@@ -35,6 +35,9 @@ export const db = () => {
   return instance;
 };
 
+/** Whether accounts can work here: a database is configured or has been injected. */
+export const databaseConfigured = () => Boolean(instance || process.env.POSTGRES_URL || process.env.TEST_DATABASE);
+
 /** Tests inject an in-memory database before the first query. */
 export const setDatabase = (database: Database) => { instance = database; ready = Promise.resolve(); };
 
