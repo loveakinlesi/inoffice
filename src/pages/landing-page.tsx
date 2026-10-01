@@ -20,7 +20,7 @@ export function LandingPage() {
         {google && <SignInButton label="Continue with Google" className="h-11 w-full bg-white text-base" />}
         <Link
           to="/onboarding"
-          className={cn(buttonVariants({ variant: google ? 'ghost' : 'default', size: 'lg' }), 'h-11 w-full text-base')}
+          className={cn(buttonVariants({ size: 'lg' }), 'h-11 w-full text-base')}
         >
           Continue as guest
         </Link>
