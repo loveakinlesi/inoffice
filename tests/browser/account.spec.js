@@ -110,9 +110,9 @@ test('first sign-in offers to import this browser’s data, once', async ({ page
   await signIn(page, uniqueEmail());
   await page.reload();
 
-  await expect(page.getByRole('heading', { name: 'Import data from this device?' })).toBeVisible();
-  await page.getByRole('button', { name: 'Import 2 recorded days' }).click();
-  await expect(page.getByText('Imported 2 recorded days')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sync this device to your account?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Sync 2 recorded days' }).click();
+  await expect(page.getByText('Synced 2 recorded days to your account')).toBeVisible();
   await expect(page.locator('[data-date="2026-09-10"]')).toHaveAttribute('title', 'OOO');
   await expect(page.locator('[data-date="2026-09-11"]')).toHaveAttribute('title', 'Office');
 
@@ -123,7 +123,32 @@ test('first sign-in offers to import this browser’s data, once', async ({ page
   // Already answered for this account on this device: no prompt after a reload.
   await page.reload();
   await expect(page.locator('[data-date="2026-09-10"]')).toHaveAttribute('title', 'OOO');
-  await expect(page.getByRole('heading', { name: 'Import data from this device?' })).toBeHidden();
+  await expect(page.getByRole('heading', { name: 'Sync this device to your account?' })).toBeHidden();
   // The guest copy is kept.
   expect(JSON.parse(await page.evaluate(() => localStorage.getItem('inoffice.entries.v1')))).toEqual({ '2026-09-10': 'ooo', '2026-09-11': 'office' });
+});
+
+test('“Not now” can be synced later from Settings', async ({ page }) => {
+  await prepare(page);
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('seeded')) return;
+    sessionStorage.setItem('seeded', '1');
+    localStorage.setItem('inoffice.settings.v1', JSON.stringify({ attendanceMode: 'percentage', targetPercentage: 50, targetDaysPerWeek: null, region: 'england-and-wales', onboardingComplete: true }));
+    localStorage.setItem('inoffice.entries.v1', JSON.stringify({ '2026-09-14': 'office' }));
+  });
+  await page.goto('/');
+  await signIn(page, uniqueEmail());
+  await page.reload();
+  await page.getByRole('button', { name: 'Not now' }).click();
+  await completeSetup(page);
+  await expect(page.locator('[data-date="2026-09-14"]')).toHaveAttribute('title', 'Undecided');
+
+  await page.getByRole('link', { name: 'Open settings' }).click();
+  await expect(page.getByText('This device has 1 recorded day from before you signed in.')).toBeVisible();
+  await page.getByRole('button', { name: 'Sync to account' }).click();
+  await expect(page.getByText('Synced 1 recorded day to your account')).toBeVisible();
+  // Everything is now in the account, so the offer disappears.
+  await expect(page.getByRole('button', { name: 'Sync to account' })).toBeHidden();
+  await page.getByRole('link', { name: /InOffice/ }).click();
+  await expect(page.locator('[data-date="2026-09-14"]')).toHaveAttribute('title', 'Office');
 });

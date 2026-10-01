@@ -12,7 +12,7 @@ InOffice is a lightweight attendance tracker for hybrid workers. Set your office
 - **UK bank holidays:** England & Wales, Scotland, and Northern Ireland, with cached fallback and manual overrides.
 - **Progress tracking:** see your progress against the monthly office target.
 - **Year overview:** compare all twelve months and jump directly to a month.
-- **Optional account:** sign in with Google to save attendance to your account and use it on any device. Guest data can be imported on first sign-in.
+- **Optional account:** sign in with Google to save attendance to your account and use it on any device. Guest data can be synced to your account when you sign in.
 - **Backup and restore:** export or import settings, attendance, and cached holidays as JSON.
 - **Responsive and accessible:** compact mobile cards, keyboard-accessible dialogs, visible focus states, and reduced-motion support.
 
@@ -124,7 +124,7 @@ Guest data belongs to the current browser and site origin. Clearing browser data
 Signing in uses Google through [Better Auth](https://www.better-auth.com). InOffice stores your Google name, email address and profile picture URL, a session, and your settings and attendance entries in Postgres. Holiday data stays in the browser.
 
 - The account is the source of truth while you are signed in. Guest data in the browser is left untouched and is used again after you sign out.
-- On first sign-in, InOffice offers to import this browser's guest data. Import merges: anything already in your account is kept. The local copy is not deleted.
+- If this browser has guest data when you sign in, InOffice asks whether to sync it to your account. Syncing merges: anything already in your account is kept. The local copy is not deleted. If you choose **Not now**, you can sync later from **Settings → Account**.
 - Changes are saved immediately. They are not queued offline: while offline, InOffice shows a notice and blocks changes until you reconnect.
 - **Reset all InOffice data** deletes your settings and attendance from the account. Deleting the account removes its data too.
 

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { UploadCloudIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button.tsx';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card.tsx';
 import { Spinner } from '@/components/ui/spinner.tsx';
 import { toast } from '@/components/ui/toast.tsx';
 import { useSession } from '@/lib/auth-client.ts';
@@ -33,16 +32,21 @@ export function useShouldOfferImport() {
   return { offer, decide };
 }
 
-export function ImportPrompt({ onDecided }: { onDecided: () => void }) {
-  const { localData, accountHasSettings, importLocalIntoAccount } = useAttendance();
-  const [pending, setPending] = useState(false);
-  const days = Object.keys(localData.entries).length;
-  const what = days > 0 ? `${days} recorded day${days === 1 ? '' : 's'}` : 'your settings';
+/** "N recorded days" or "your settings": what this browser would sync into the account. */
+export function localSummary(entries: Record<string, unknown>) {
+  const days = Object.keys(entries).length;
+  return { days, what: days > 0 ? `${days} recorded day${days === 1 ? '' : 's'}` : 'your settings' };
+}
 
-  const importData = async () => {
+export function ImportPrompt({ onDecided }: { onDecided: () => void }) {
+  const { localData, accountHasSettings, importLocalIntoAccount, firstName } = useAttendance();
+  const [pending, setPending] = useState(false);
+  const { days, what } = localSummary(localData.entries);
+
+  const sync = async () => {
     setPending(true);
     if (await importLocalIntoAccount()) {
-      toast.add({ title: days > 0 ? `Imported ${what}` : 'Settings imported' });
+      toast.add({ title: days > 0 ? `Synced ${what} to your account` : 'Settings synced to your account' });
       onDecided();
     } else {
       setPending(false);
@@ -50,29 +54,26 @@ export function ImportPrompt({ onDecided }: { onDecided: () => void }) {
   };
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center px-4 py-10">
-      <Card className="shadow-card">
-        <CardHeader>
-          <UploadCloudIcon className="mb-2 size-8 text-muted-foreground" aria-hidden="true" />
-          <CardTitle><h1 className="text-xl font-semibold tracking-tight">Import data from this device?</h1></CardTitle>
-          <CardDescription className="text-sm leading-6">
-            This browser has {what} from before you signed in. Import {days > 0 ? 'them' : 'it'} into your account to keep everything in one place.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm leading-6 text-muted-foreground">
-          {accountHasSettings
-            ? 'Your account already has data. Anything already in your account is kept; only days missing from it are added.'
-            : 'Your target and bank holiday calendar will be copied too.'}
-          {' '}The copy on this device isn’t deleted.
-        </CardContent>
-        <CardFooter className="flex flex-wrap justify-end gap-2">
-          <Button variant="outline" size="lg" disabled={pending} onClick={onDecided}>Not now</Button>
-          <Button size="lg" disabled={pending} onClick={importData}>
-            {pending && <Spinner data-icon="inline-start" />}
-            Import {what}
-          </Button>
-        </CardFooter>
-      </Card>
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-12">
+      <UploadCloudIcon className="mb-8 size-12 text-muted-foreground" aria-hidden="true" />
+      <h1 className="text-3xl font-semibold tracking-tight">Sync this device to your account?</h1>
+      <p className="mt-4 text-lg leading-7 text-muted-foreground">
+        {firstName ? `Welcome, ${firstName}. ` : ''}You’ve been using InOffice on this device without an account. It has {what} saved here.
+      </p>
+      <p className="mt-3 text-sm leading-6 text-muted-foreground">
+        {accountHasSettings
+          ? 'Your account already has data. Anything in your account is kept; only days it’s missing are added.'
+          : 'Your target and bank holiday calendar will be copied too.'}
+        {' '}The copy on this device isn’t deleted.
+      </p>
+      <div className="mt-10 flex flex-col gap-3">
+        <Button size="lg" className="h-11 w-full text-base" disabled={pending} onClick={sync}>
+          {pending && <Spinner data-icon="inline-start" />}
+          Sync {what}
+        </Button>
+        <Button variant="ghost" size="lg" className="h-11 w-full text-base" disabled={pending} onClick={onDecided}>Not now</Button>
+      </div>
+      <p className="mt-6 text-sm leading-6 text-muted-foreground">You can sync later from Settings.</p>
     </main>
   );
 }

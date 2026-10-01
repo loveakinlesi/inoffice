@@ -10,12 +10,38 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx'
 import { ConfirmDialog, type ConfirmRequest } from '@/components/confirm-dialog.tsx';
 import { SignInButton, initials, signOutAndNotify } from '@/components/account-menu.tsx';
 import { useAuthConfig, useSession } from '@/lib/auth-client.ts';
+import { localSummary } from '@/components/import-prompt.tsx';
 import { RegionControl, TargetControls, applyTargetDraft, toTargetDraft } from '@/components/target-controls.tsx';
 import { formatMonth } from '@/lib/attendance.ts';
 import { holidayCoverage } from '@/lib/holidays.ts';
 import { validateBackup } from '@/lib/validation.ts';
 import { track } from '@/lib/analytics.ts';
 import { useAttendance } from '@/state/attendance.tsx';
+
+/** Lets a signed-in user sync this browser's guest data later (e.g. after choosing "Not now"). */
+function SyncLocalData() {
+  const { localData, entries, accountHasSettings, importLocalIntoAccount, accountStatus } = useAttendance();
+  const [pending, setPending] = useState(false);
+  // Only offer what the account is missing: merge never overwrites days the account already has.
+  const missing = Object.fromEntries(Object.entries(localData.entries).filter(([date]) => !Object.hasOwn(entries, date)));
+  const settingsMissing = localData.settings.onboardingComplete && accountHasSettings === false;
+  if (accountStatus !== 'ready' || (Object.keys(missing).length === 0 && !settingsMissing)) return null;
+  const { days, what } = localSummary(missing);
+  const sync = async () => {
+    setPending(true);
+    if (await importLocalIntoAccount()) toast.add({ title: days > 0 ? `Synced ${what} to your account` : 'Settings synced to your account' });
+    setPending(false);
+  };
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+      <p className="text-sm leading-6 text-muted-foreground">This device has {what} from before you signed in.</p>
+      <Button variant="outline" disabled={pending} onClick={sync}>
+        {pending && <Spinner data-icon="inline-start" />}
+        Sync to account
+      </Button>
+    </div>
+  );
+}
 
 function AccountSection() {
   const config = useAuthConfig();
@@ -26,6 +52,7 @@ function AccountSection() {
       <section className="flex flex-col gap-3">
         <h3 className="font-medium">Account</h3>
         {session ? (
+          <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
               <Avatar size="lg">
@@ -39,6 +66,8 @@ function AccountSection() {
             </div>
             <Button variant="outline" onClick={() => void signOutAndNotify()}>Sign out</Button>
           </div>
+          <SyncLocalData />
+          </>
         ) : (
           <>
             <p className="text-sm leading-6 text-muted-foreground">Sign in to back up your attendance and use it on any device. You can keep using InOffice without an account.</p>
