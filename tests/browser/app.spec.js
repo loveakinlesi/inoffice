@@ -33,9 +33,18 @@ test('onboarding, calendar cycling, navigation, persistence, settings and overvi
  await page.reload();await expect(page.locator('#app')).toBeVisible();await expect(page.locator('[data-date="2026-09-08"]')).toHaveAttribute('title','Undecided');
  await page.getByRole('link',{name:'Open settings'}).click();
  await expect(page).toHaveURL(/\/settings$/);
+ await expect(page.locator('#targetSummary')).toHaveText('50% of working days');
+ await page.getByRole('button',{name:'Edit attendance settings'}).click();
  await page.getByRole('radio',{name:'Days per week'}).check();await page.getByLabel('Office days per week',{exact:true}).selectOption('3');
  await page.getByRole('combobox',{name:'Which UK bank holiday calendar should we use?'}).selectOption('scotland');
- await page.getByRole('button',{name:'Save settings'}).click();await expect(page.getByRole('combobox',{name:'Which UK bank holiday calendar should we use?'})).toHaveValue('scotland');
+ await page.getByRole('button',{name:'Save settings'}).click();
+ // Saving collapses the section back to its summary.
+ await expect(page.locator('#regionSummary')).toHaveText('Scotland');await expect(page.locator('#targetSummary')).toHaveText('3 office days per week');
+ await expect(page.locator('#settingsForm')).toHaveCount(0);
+ // Cancel discards edits.
+ await page.getByRole('button',{name:'Edit attendance settings'}).click();
+ await page.getByRole('combobox',{name:'Which UK bank holiday calendar should we use?'}).selectOption('northern-ireland');
+ await page.getByRole('button',{name:'Cancel'}).click();await expect(page.locator('#regionSummary')).toHaveText('Scotland');
  await page.getByRole('link',{name:'Year overview',exact:true}).filter({visible:true}).click();await expect(page).toHaveURL(/\/overview$/);await expect(page.locator('#overviewGridPage [data-overview-month]')).toHaveCount(12);
  await expect(page.locator('#overviewGridPage [data-overview-month="0"]')).toContainText('Missed');await page.locator('#overviewGridPage [data-overview-month="0"]').click();await expect(page).toHaveURL(/\/$/);await expect(page.locator('#monthTitleMobile')).toHaveText('January 2026');
  await page.getByRole('link',{name:'Open settings'}).click();await page.keyboard.press('Escape');await expect(page.locator('#settingsPage')).toBeVisible();

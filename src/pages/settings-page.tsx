@@ -10,7 +10,9 @@ import { ConfirmDialog, type ConfirmRequest } from '@/components/confirm-dialog.
 import { SignInButton, initials, signOutAndNotify } from '@/components/account-menu.tsx';
 import { useAuthConfig, useSession } from '@/lib/auth-client.ts';
 import { localSummary } from '@/components/import-prompt.tsx';
-import { RegionControl, TargetControls, applyTargetDraft, toTargetDraft } from '@/components/target-controls.tsx';
+import { RegionControl, TargetControls, applyTargetDraft, targetDescription, toTargetDraft } from '@/components/target-controls.tsx';
+import { REGION_NAMES } from '@/lib/constants.ts';
+import { PencilIcon } from 'lucide-react';
 import { formatMonth } from '@/lib/attendance.ts';
 import { holidayCoverage } from '@/lib/holidays.ts';
 import { validateBackup } from '@/lib/validation.ts';
@@ -106,25 +108,56 @@ function AccountSection() {
   );
 }
 
+/** Collapsed to a summary until the user chooses to edit; saving or cancelling collapses it again. */
 function PreferencesForm() {
   const { settings, saveSettings } = useAttendance();
+  const [editing, setEditing] = useState(false);
   const [target, setTarget] = useState(() => toTargetDraft(settings));
   const [region, setRegion] = useState(settings.region);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    // Saving changes `settings`, which remounts this component (see SettingsPage) and collapses it.
     if (saveSettings({ ...applyTargetDraft(settings, target), region })) toast.add({ title: 'Settings saved' });
+  };
+
+  const cancel = () => {
+    setTarget(toTargetDraft(settings));
+    setRegion(settings.region);
+    setEditing(false);
   };
 
   return (
     <SettingsGroup title="Attendance" description="Your office target and the bank holidays that don’t count as working days.">
-      <form id="settingsForm" onSubmit={submit} className="p-4">
-        <FieldGroup>
-          <TargetControls value={target} onChange={setTarget} />
-          <RegionControl value={region} onChange={setRegion} />
-          <Button type="submit" size="lg" className="w-full sm:w-auto sm:self-end">Save settings</Button>
-        </FieldGroup>
-      </form>
+      {editing ? (
+        <form id="settingsForm" onSubmit={submit} className="p-4">
+          <FieldGroup>
+            <TargetControls value={target} onChange={setTarget} />
+            <RegionControl value={region} onChange={setRegion} />
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <Button type="button" variant="ghost" size="lg" onClick={cancel}>Cancel</Button>
+              <Button type="submit" size="lg">Save settings</Button>
+            </div>
+          </FieldGroup>
+        </form>
+      ) : (
+        <div className="flex items-start justify-between gap-4 px-4 py-3.5">
+          <dl className="grid min-w-0 gap-2 text-sm">
+            <div>
+              <dt className="text-muted-foreground">Target</dt>
+              <dd id="targetSummary" className="font-medium">{targetDescription(settings)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Bank holidays</dt>
+              <dd id="regionSummary" className="font-medium">{REGION_NAMES[settings.region]}</dd>
+            </div>
+          </dl>
+          <Button variant="outline" aria-label="Edit attendance settings" aria-expanded={false} aria-controls="settingsForm" onClick={() => setEditing(true)}>
+            <PencilIcon data-icon="inline-start" />
+            Edit
+          </Button>
+        </div>
+      )}
     </SettingsGroup>
   );
 }
