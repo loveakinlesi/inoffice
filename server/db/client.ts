@@ -1,6 +1,10 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
+import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import postgres from 'postgres';
 import * as schema from './schema.ts';
+
+/** Any Drizzle Postgres database with our schema (postgres.js in the app, PGlite in tests). */
+export type Database = PgDatabase<PgQueryResultHKT, typeof schema>;
 
 /**
  * postgres.js forwards unknown URL query parameters (e.g. Supabase's `supa=`) to Postgres as
@@ -13,7 +17,7 @@ export function connectionOptions(url: string) {
   return { url: parsed.toString(), ssl };
 }
 
-function createDb() {
+function createDb(): Database {
   const raw = process.env.POSTGRES_URL;
   if (!raw) throw new Error('POSTGRES_URL is not set. Run `vercel env pull .env.local`.');
   const { url, ssl } = connectionOptions(raw);
@@ -22,6 +26,8 @@ function createDb() {
   return drizzle(client, { schema, casing: 'snake_case' });
 }
 
-let instance: ReturnType<typeof createDb> | undefined;
+let instance: Database | undefined;
 /** Lazily created so routes that never touch the database don't need credentials. */
 export const db = () => (instance ??= createDb());
+/** Tests inject an in-memory database before the first query. */
+export const setDatabase = (database: Database) => { instance = database; };
