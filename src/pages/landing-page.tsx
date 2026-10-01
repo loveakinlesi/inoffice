@@ -1,71 +1,34 @@
-import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router';
-import { Button } from '@/components/ui/button.tsx';
-import { Card, CardContent } from '@/components/ui/card.tsx';
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldSeparator } from '@/components/ui/field.tsx';
-import { Input } from '@/components/ui/input.tsx';
+import { Link } from 'react-router';
+import { cn } from '@/lib/utils.ts';
+import { buttonVariants } from '@/components/ui/button.tsx';
 import { SignInButton } from '@/components/account-menu.tsx';
 import { useAuthConfig } from '@/lib/auth-client.ts';
-import { MAX_FIRST_NAME_LENGTH, normalizeFirstName } from '@/lib/validation.ts';
-import { useAttendance } from '@/state/attendance.tsx';
 
-/** First screen for someone new: sign in with Google, or continue as a guest with just a first name. */
+/** First screen for someone new: continue with Google, or as a guest (setup then asks for a name). */
 export function LandingPage() {
-  const { saveProfile } = useAttendance();
   const config = useAuthConfig();
-  const navigate = useNavigate();
-  const [name, setName] = useState('');
-  const [error, setError] = useState<string | null>(null);
-
-  const continueAsGuest = (e: FormEvent) => {
-    e.preventDefault();
-    const firstName = normalizeFirstName(name);
-    if (!firstName) { setError('Enter your first name to continue.'); return; }
-    if (saveProfile({ firstName })) navigate('/onboarding');
-  };
+  const google = config?.providers.google;
 
   return (
-    <main id="landing" className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center px-4 py-10">
-      <img src="/logo.png" alt="InOffice logo" className="mb-6 size-12" />
-      <h1 className="text-3xl font-semibold tracking-tight">Welcome to InOffice</h1>
-      <p className="mt-3 text-base leading-6 text-muted-foreground">
+    <main id="landing" className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-12">
+      <img src="/logo.png" alt="InOffice logo" className="mb-8 size-14" />
+      <h1 className="text-4xl font-semibold tracking-tight">Welcome to InOffice</h1>
+      <p className="mt-4 text-lg leading-7 text-muted-foreground">
         Keep track of your office days and know exactly what you need to hit your hybrid-work target.
       </p>
-      <Card className="mt-8 shadow-card">
-        <CardContent className="sm:p-4">
-          <FieldGroup>
-            {config?.providers.google && (
-              <>
-                <Field>
-                  <SignInButton label="Continue with Google" className="w-full" />
-                  <FieldDescription className="text-center">Sync your attendance across devices.</FieldDescription>
-                </Field>
-                <FieldSeparator>or</FieldSeparator>
-              </>
-            )}
-            <form id="guestForm" onSubmit={continueAsGuest} noValidate>
-              <FieldGroup>
-                <Field data-invalid={error ? true : undefined}>
-                  <FieldLabel htmlFor="firstName">First name</FieldLabel>
-                  <Input
-                    id="firstName"
-                    name="firstName"
-                    autoComplete="given-name"
-                    maxLength={MAX_FIRST_NAME_LENGTH}
-                    value={name}
-                    aria-invalid={error ? true : undefined}
-                    onChange={e => { setName(e.target.value); setError(null); }}
-                  />
-                  {error && <FieldError>{error}</FieldError>}
-                </Field>
-                <Button type="submit" size="lg" variant={config?.providers.google ? 'outline' : 'default'}>Continue as guest</Button>
-              </FieldGroup>
-            </form>
-          </FieldGroup>
-        </CardContent>
-      </Card>
-      <p className="mt-6 text-center text-xs leading-5 text-muted-foreground">
-        As a guest, your attendance stays in this browser. You can sign in later.
+      <div className="mt-10 flex flex-col gap-3">
+        {google && <SignInButton label="Continue with Google" className="h-11 w-full bg-white text-base" />}
+        <Link
+          to="/onboarding"
+          className={cn(buttonVariants({ variant: google ? 'ghost' : 'default', size: 'lg' }), 'h-11 w-full text-base')}
+        >
+          Continue as guest
+        </Link>
+      </div>
+      <p className="mt-6 text-sm leading-6 text-muted-foreground">
+        {google
+          ? 'Sign in to sync your attendance across devices. As a guest, it stays in this browser and you can sign in later.'
+          : 'Your attendance stays in this browser. No account needed.'}
       </p>
     </main>
   );

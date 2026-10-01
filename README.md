@@ -25,7 +25,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open the local URL printed by Vite. The landing page asks you to continue with Google or as a guest, then the two-step setup runs at `/onboarding`.
+Open the local URL printed by Vite. The landing page offers Google or guest; setup then runs at `/onboarding` (guests are asked for a first name first).
 
 ### Commands
 

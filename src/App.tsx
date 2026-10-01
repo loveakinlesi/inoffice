@@ -14,7 +14,7 @@ import { initAnalytics } from '@/lib/analytics.ts';
 import { AttendanceProvider, useAttendance } from '@/state/attendance.tsx';
 
 function Screens() {
-  const { settings, accountStatus, identified } = useAttendance();
+  const { settings, accountStatus, mode } = useAttendance();
   const importOffer = useShouldOfferImport();
   // Wait for account data before deciding whether setup is needed, so it never flashes.
   if (accountStatus === 'loading' || accountStatus === 'error') return <AccountLoading />;
@@ -22,15 +22,12 @@ function Screens() {
   if (importOffer.offer) return <ImportPrompt onDecided={importOffer.decide} />;
 
   if (!settings.onboardingComplete) {
-    // New here: the landing page asks who you are (Google or a first name), then setup runs at /onboarding.
-    return identified ? (
+    // New here: the landing page offers Google or guest, then setup runs at /onboarding.
+    // Signed-in users already chose, so they go straight to setup.
+    return (
       <Routes>
+        <Route index element={mode === 'account' ? <Navigate to="/onboarding" replace /> : <LandingPage />} />
         <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="*" element={<Navigate to="/onboarding" replace />} />
-      </Routes>
-    ) : (
-      <Routes>
-        <Route index element={<LandingPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );

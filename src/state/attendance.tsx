@@ -32,8 +32,6 @@ export interface AttendanceContextValue extends StoredState {
   profile: Profile | null;
   /** Name to greet the user by: Google first name when signed in, else the guest's name. */
   firstName: string | null;
-  /** Whether we know who this is yet: signed in, or a guest who gave a first name. */
-  identified: boolean;
   saveProfile: (profile: Profile) => boolean;
   viewDate: Date;
   holidayMessage: string;
@@ -185,7 +183,6 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       mode: accountMode ? 'account' : 'local',
       profile,
       firstName: accountMode ? googleFirstName : profile?.firstName ?? null,
-      identified: accountMode || profile !== null,
       saveProfile: next => {
         if (!persist(() => saveProfile(next))) return false;
         setProfile(next);

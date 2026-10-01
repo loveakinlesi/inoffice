@@ -3,9 +3,10 @@ const holidays=Object.fromEntries(['england-and-wales','scotland','northern-irel
 async function setup(page,mode='percentage') {
  await page.goto('/');
  await expect(page.getByRole('heading',{name:'Welcome to InOffice'})).toBeVisible();
- await page.getByLabel('First name').fill('Alex');
- await page.getByRole('button',{name:'Continue as guest'}).click();
+ await page.getByRole('link',{name:'Continue as guest'}).click();
  await expect(page).toHaveURL(/\/onboarding$/);
+ await page.getByLabel('First name').fill('Alex');
+ await page.getByRole('button',{name:'Continue',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Welcome to InOffice, Alex'})).toBeVisible();
  if(mode==='days') {await page.getByRole('radio',{name:'Days per week'}).check();await page.getByLabel('Office days per week',{exact:true}).selectOption('3');}
  await page.getByRole('button',{name:'Continue',exact:true}).click();
@@ -87,16 +88,29 @@ test('live GOV.UK loading',async({page})=>{
  expect(Object.keys(cache.data.scotland).length).toBeGreaterThan(0);
 });
 
-test('landing page asks for a first name before setup',async({page})=>{
+test('landing offers Google or guest; setup asks a guest for their first name',async({page})=>{
  await page.goto('/settings');
  await expect(page).toHaveURL(/\/$/);
  await expect(page.getByRole('button',{name:'Continue with Google'})).toBeVisible();
- await page.getByRole('button',{name:'Continue as guest'}).click();
- await expect(page.getByText('Enter your first name to continue.')).toBeVisible();
- await page.getByLabel('First name').fill('  Sam  ');
- await page.getByRole('button',{name:'Continue as guest'}).click();
+ await page.getByRole('link',{name:'Continue as guest'}).click();
  await expect(page).toHaveURL(/\/onboarding$/);
- expect(JSON.parse(await page.evaluate(()=>localStorage.getItem('inoffice.profile.v1')))).toEqual({firstName:'Sam'});
- await page.reload();
+ await expect(page.getByText('Step 1 of 3')).toBeVisible();
+ await page.getByRole('button',{name:'Continue',exact:true}).click();
+ await expect(page.getByText('Enter your first name to continue.')).toBeVisible();
+ // Back from the first step returns to the landing page.
+ await page.getByRole('button',{name:'Back'}).click();
+ await expect(page).toHaveURL(/\/$/);
+ await page.getByRole('link',{name:'Continue as guest'}).click();
+ await page.getByLabel('First name').fill('  Sam  ');
+ await page.getByRole('button',{name:'Continue',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Welcome to InOffice, Sam'})).toBeVisible();
+ await expect(page.getByText('Step 2 of 3')).toBeVisible();
+ await page.getByRole('button',{name:'Continue',exact:true}).click();
+ await page.getByRole('button',{name:'Finish setup'}).click();
+ await expect(page.getByRole('heading',{name:'You’re all set, Sam'})).toBeVisible();
+ await page.getByRole('button',{name:'Open InOffice',exact:true}).click();
+ expect(JSON.parse(await page.evaluate(()=>localStorage.getItem('inoffice.profile.v1')))).toEqual({firstName:'Sam'});
+ // Rerunning setup doesn't ask for the name again.
+ await page.goto('/onboarding');
+ await expect(page.getByText('Step 1 of 2')).toBeVisible();
 });

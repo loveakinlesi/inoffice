@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { LogInIcon, LogOutIcon } from 'lucide-react';
+import { LogOutIcon } from 'lucide-react';
+import { GoogleIcon } from '@/components/google-icon.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx';
 import { Button } from '@/components/ui/button.tsx';
 import {
@@ -12,7 +13,7 @@ import { signInWithGoogle, signOut, useAuthConfig, useSession } from '@/lib/auth
 
 export const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]!.toUpperCase()).join('') || '?';
 
-export function SignInButton({ className, label = 'Sign in' }: { className?: string; label?: string }) {
+export function SignInButton({ className, label = 'Sign in', size = 'lg' }: { className?: string; label?: string; size?: 'lg' | 'default' }) {
   const [pending, setPending] = useState(false);
   const start = async () => {
     setPending(true);
@@ -20,8 +21,8 @@ export function SignInButton({ className, label = 'Sign in' }: { className?: str
     // On success the browser navigates to Google, so leave the button pending.
   };
   return (
-    <Button variant="outline" size="lg" className={className} disabled={pending} onClick={start}>
-      {pending ? <Spinner data-icon="inline-start" /> : <LogInIcon data-icon="inline-start" />}
+    <Button variant="outline" size={size} className={className} disabled={pending} onClick={start}>
+      {pending ? <Spinner data-icon="inline-start" /> : <GoogleIcon data-icon="inline-start" />}
       {label}
     </Button>
   );
