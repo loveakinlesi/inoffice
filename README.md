@@ -65,6 +65,8 @@ Guest mode needs no backend. Account features use a Supabase Postgres database t
    pnpm db:migrate
    ```
 
+Sign-in uses [Better Auth](https://www.better-auth.com) with Google. Create an OAuth client in Google Cloud Console with the redirect URI `http://127.0.0.1:5173/api/auth/callback/google` (and `http://localhost:5173/...` if you use that host), then set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. See `.env.example` for every variable.
+
 `pnpm dev` serves the API from the Vite dev server; `GET /api/health` reports database connectivity. All InOffice tables, and the migration history, live in a dedicated `inoffice` Postgres schema. After changing `server/db/schema.ts`, run `pnpm db:generate` and commit the new file in `drizzle/`.
 
 ## How attendance is calculated
@@ -149,6 +151,7 @@ public/                   Icons, manifest and service worker
 api/index.ts              Vercel Function entry for /api/*
 server/
   app.ts                  Hono API routes
+  auth.ts                 Better Auth configuration
   db/                     Drizzle schema, client and migration runner
 drizzle/                  Generated SQL migrations
 src/
