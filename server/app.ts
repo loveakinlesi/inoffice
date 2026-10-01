@@ -1,11 +1,15 @@
 import { Hono } from 'hono';
 import { sql } from 'drizzle-orm';
-import { db } from './db/client.ts';
-import { allowedHosts, getAuth } from './auth.ts';
+import { db, prepareDatabase } from './db/client.ts';
+import { allowedHosts, enableTestUtils, getAuth } from './auth.ts';
 import { dataRoutes } from './routes/data.ts';
+import { testAuthRoutes } from './routes/test-auth.ts';
 
 // Single Hono app for all /api routes. Served by api/index.ts on Vercel and by the Vite dev middleware locally.
 export const app = new Hono().basePath('/api');
+
+// Connect (or, in browser tests, create the in-memory database) before handling any request.
+app.use(async (_c, next) => { await prepareDatabase(); await next(); });
 
 app.get('/health', async c => {
   let database: 'ok' | 'error' = 'ok';
@@ -31,6 +35,7 @@ app.use(async (c, next) => {
   return next();
 });
 app.route('/', dataRoutes);
+if (enableTestUtils) app.route('/', testAuthRoutes);
 
 app.notFound(c => c.json({ error: 'Not found' }, 404));
 app.onError((err, c) => {

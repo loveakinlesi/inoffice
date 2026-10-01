@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils.ts';
 import { buttonVariants } from '@/components/ui/button.tsx';
 import { track } from '@/lib/analytics.ts';
 import { AccountMenu } from '@/components/account-menu.tsx';
+import { OfflineBanner } from '@/components/account-status.tsx';
 import { useAttendance } from '@/state/attendance.tsx';
 
 const TABS = [
@@ -71,6 +72,7 @@ export function AppShell() {
       <a href="#main" className="sr-only focus:not-sr-only">Skip to dashboard</a>
       <Header />
       <main id="main" className="mx-auto flex max-w-7xl flex-col gap-4 px-3 py-4 sm:gap-6 sm:px-6 sm:py-6 lg:px-8">
+        <OfflineBanner />
         <Outlet />
       </main>
       <TabBar />

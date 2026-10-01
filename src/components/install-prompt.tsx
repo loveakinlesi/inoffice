@@ -16,7 +16,7 @@ const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.p
 const readDismissed = () => { try { return sessionStorage.getItem(DISMISS_KEY) === '1'; } catch { return false; } };
 
 export function InstallPrompt() {
-  const { settings, entries } = useAttendance();
+  const { settings, entries, mode } = useAttendance();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(readDismissed);
   const [eligible, setEligible] = useState(() => isMobile() && !isStandalone());
@@ -57,7 +57,9 @@ export function InstallPrompt() {
         <div className="max-w-2xl">
           <p className="text-base font-semibold tracking-tight">Install InOffice on your phone</p>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            {hasData
+            {mode === 'account'
+              ? 'Install now so InOffice opens like an app on your phone. Your attendance is saved to your account.'
+              : hasData
               ? 'Your attendance stays in this browser. Install now so it behaves like an app on your phone. If you plan to move to a different phone later, export a backup in Settings first, then import it on the new device.'
               : 'Install now so InOffice opens like an app on your phone. Start here before you record attendance, then it will stay on your home screen.'}
           </p>

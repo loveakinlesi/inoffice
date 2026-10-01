@@ -27,7 +27,37 @@ function createDb(): Database {
 }
 
 let instance: Database | undefined;
+let ready: Promise<void> | undefined;
+
 /** Lazily created so routes that never touch the database don't need credentials. */
-export const db = () => (instance ??= createDb());
+export const db = () => {
+  if (!instance) throw new Error('Database not prepared; call prepareDatabase() first.');
+  return instance;
+};
+
 /** Tests inject an in-memory database before the first query. */
-export const setDatabase = (database: Database) => { instance = database; };
+export const setDatabase = (database: Database) => { instance = database; ready = Promise.resolve(); };
+
+/**
+ * Creates the database on first use. With TEST_DATABASE=pglite (browser tests), uses an in-memory
+ * Postgres with migrations applied, so tests never need credentials or touch a shared database.
+ */
+export function prepareDatabase() {
+  ready ??= (async () => {
+    if (process.env.TEST_DATABASE === 'pglite') {
+      const [{ PGlite }, { drizzle: drizzlePglite }, { migrate }] = await Promise.all([
+        import('@electric-sql/pglite'), import('drizzle-orm/pglite'), import('drizzle-orm/pglite/migrator'),
+      ]);
+      const memory = drizzlePglite(new PGlite(), { schema, casing: 'snake_case' });
+      await migrate(memory, { migrationsFolder: './drizzle', migrationsSchema: 'inoffice', migrationsTable: '__drizzle_migrations' });
+      instance = memory as unknown as Database;
+    } else {
+      instance = createDb();
+    }
+  })().catch(error => {
+    // Leave the database unset (queries fail, other routes still work) and retry on the next request.
+    ready = undefined;
+    console.error('Database unavailable:', (error as Error).message);
+  });
+  return ready;
+}

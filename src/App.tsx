@@ -4,6 +4,7 @@ import { AppShell } from '@/components/app-shell.tsx';
 import { InstallPrompt } from '@/components/install-prompt.tsx';
 import { Onboarding, SetupProvider, useSetup } from '@/components/onboarding.tsx';
 import { Toaster } from '@/components/ui/toast.tsx';
+import { AccountLoading } from '@/components/account-status.tsx';
 import { CalendarPage } from '@/pages/calendar-page.tsx';
 import { OverviewPage } from '@/pages/overview-page.tsx';
 import { SettingsPage } from '@/pages/settings-page.tsx';
@@ -11,8 +12,10 @@ import { initAnalytics } from '@/lib/analytics.ts';
 import { AttendanceProvider, useAttendance } from '@/state/attendance.tsx';
 
 function Screens() {
-  const { settings } = useAttendance();
+  const { settings, accountStatus } = useAttendance();
   const setup = useSetup();
+  // Wait for account data before deciding whether setup is needed, so it never flashes.
+  if (accountStatus === 'loading' || accountStatus === 'error') return <AccountLoading />;
   if (!settings.onboardingComplete || setup.open) return <Onboarding key={String(settings.onboardingComplete)} />;
   return (
     <Routes>

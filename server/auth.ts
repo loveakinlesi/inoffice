@@ -21,7 +21,7 @@ const google = env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
   : undefined;
 
 /** Test-only helpers (create users, mint sessions). Never enabled on a production deployment. */
-const enableTestUtils = env.AUTH_TEST_UTILS === '1' && env.VERCEL_ENV !== 'production';
+export const enableTestUtils = env.AUTH_TEST_UTILS === '1' && env.VERCEL_ENV !== 'production';
 
 function createAuth(database: Database) {
   return betterAuth({

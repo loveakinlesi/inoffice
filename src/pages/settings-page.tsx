@@ -99,6 +99,7 @@ function DataSection({ confirm }: { confirm: (r: ConfirmRequest) => void }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const month = formatMonth(state.viewDate);
+  const account = state.mode === 'account';
 
   const exportBackup = () => {
     const payload = { app: 'InOffice', version: 1, exportedAt: new Date().toISOString(), settings: state.settings, entries: state.entries, holidayCache: state.holidayCache };
@@ -144,7 +145,9 @@ function DataSection({ confirm }: { confirm: (r: ConfirmRequest) => void }) {
     <section className="flex flex-col gap-3">
       <h3 className="font-medium">Data</h3>
       <p className="text-sm leading-6 text-muted-foreground">
-        Attendance is saved only in this browser. Export a backup to keep a copy or move to another device. Importing replaces your current data.
+        {account
+          ? 'Your attendance is saved to your account and available wherever you sign in. Export a backup to keep your own copy. Importing replaces your account data.'
+          : 'Attendance is saved only in this browser. Export a backup to keep a copy or move to another device. Importing replaces your current data.'}
       </p>
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={exportBackup}>Export JSON</Button>
@@ -178,7 +181,9 @@ function DataSection({ confirm }: { confirm: (r: ConfirmRequest) => void }) {
           className="mt-2"
           onClick={() => confirm({
             title: 'Reset all data?',
-            description: 'Delete all InOffice settings, attendance history and cached bank holidays from this browser? This cannot be undone.',
+            description: account
+              ? 'Delete all InOffice settings and attendance history from your account? This cannot be undone. Your sign-in stays active.'
+              : 'Delete all InOffice settings, attendance history and cached bank holidays from this browser? This cannot be undone.',
             confirmLabel: 'Delete everything',
             destructive: true,
             onConfirm: () => { if (state.resetAll()) toast.add({ title: 'All InOffice data reset' }); },
