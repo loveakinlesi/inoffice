@@ -1,6 +1,6 @@
 import { REGION_NAMES, STATUS_ORDER } from './constants.ts';
 import { iso } from './attendance.ts';
-import type { BackupData, Entries, HolidayCache, Settings } from './types.ts';
+import type { BackupData, Entries, HolidayCache, Profile, Settings } from './types.ts';
 export const DEFAULT_SETTINGS: Settings = { attendanceMode:'percentage', targetPercentage:50, targetDaysPerWeek:null, region:'england-and-wales', onboardingComplete:false };
 const object = (x: unknown): x is Record<string, any> => x !== null && typeof x === 'object' && !Array.isArray(x);
 export function validDate(value: unknown): value is string {
@@ -16,6 +16,14 @@ export function validSettings(s: unknown): s is Settings {
       Number.isFinite(s.targetDaysPerWeek) && s.targetDaysPerWeek>=1 && s.targetDaysPerWeek<=5 &&
       Number.isInteger(s.targetDaysPerWeek*2) && Math.abs(s.targetDaysPerWeek/5*100-s.targetPercentage)<1e-8);
 }
+export const MAX_FIRST_NAME_LENGTH = 50;
+/** Trimmed first name, or null when empty or too long. */
+export function normalizeFirstName(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const name = value.trim().replace(/\s+/g, ' ');
+  return name.length > 0 && name.length <= MAX_FIRST_NAME_LENGTH ? name : null;
+}
+export const validProfile = (p: unknown): p is Profile => object(p) && normalizeFirstName(p.firstName) === p.firstName;
 export const validEntries = (e: unknown): e is Entries => object(e) && Object.entries(e).every(([d,s])=>validDate(d)&&STATUS_ORDER.includes(s));
 export function validCache(c: unknown): c is HolidayCache {
   return object(c) && Number.isFinite(c.fetchedAt) && c.fetchedAt>=0 && object(c.data) &&

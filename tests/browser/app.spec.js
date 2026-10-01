@@ -2,6 +2,11 @@ import { test, expect } from '@playwright/test';
 const holidays=Object.fromEntries(['england-and-wales','scotland','northern-ireland'].map(r=>[r,{events:[{date:'2026-09-07',title:'Test bank holiday'},{date:'2026-12-25',title:'Christmas Day'}]}]));
 async function setup(page,mode='percentage') {
  await page.goto('/');
+ await expect(page.getByRole('heading',{name:'Welcome to InOffice'})).toBeVisible();
+ await page.getByLabel('First name').fill('Alex');
+ await page.getByRole('button',{name:'Continue as guest'}).click();
+ await expect(page).toHaveURL(/\/onboarding$/);
+ await expect(page.getByRole('heading',{name:'Welcome to InOffice, Alex'})).toBeVisible();
  if(mode==='days') {await page.getByRole('radio',{name:'Days per week'}).check();await page.getByLabel('Office days per week',{exact:true}).selectOption('3');}
  await page.getByRole('button',{name:'Continue',exact:true}).click();
  await page.getByRole('button',{name:'Finish setup'}).click();
@@ -80,4 +85,18 @@ test('live GOV.UK loading',async({page})=>{
  const cache=await page.evaluate(()=>JSON.parse(localStorage.getItem('inoffice.holidays.v1')));
  expect(Object.keys(cache.data)).toHaveLength(3);
  expect(Object.keys(cache.data.scotland).length).toBeGreaterThan(0);
+});
+
+test('landing page asks for a first name before setup',async({page})=>{
+ await page.goto('/settings');
+ await expect(page).toHaveURL(/\/$/);
+ await expect(page.getByRole('button',{name:'Continue with Google'})).toBeVisible();
+ await page.getByRole('button',{name:'Continue as guest'}).click();
+ await expect(page.getByText('Enter your first name to continue.')).toBeVisible();
+ await page.getByLabel('First name').fill('  Sam  ');
+ await page.getByRole('button',{name:'Continue as guest'}).click();
+ await expect(page).toHaveURL(/\/onboarding$/);
+ expect(JSON.parse(await page.evaluate(()=>localStorage.getItem('inoffice.profile.v1')))).toEqual({firstName:'Sam'});
+ await page.reload();
+ await expect(page.getByRole('heading',{name:'Welcome to InOffice, Sam'})).toBeVisible();
 });

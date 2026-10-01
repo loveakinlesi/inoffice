@@ -31,6 +31,11 @@ export interface AppState extends AttendanceState {
   holidayMessage: string;
 }
 
+/** Guest identity, kept only in this browser. Signed-in users take their name from Google. */
+export interface Profile {
+  firstName: string;
+}
+
 export interface BackupData {
   settings: Settings;
   entries: Entries;

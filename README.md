@@ -6,7 +6,7 @@ InOffice is a lightweight attendance tracker for hybrid workers. Set your office
 
 ## Features
 
-- **Simple setup:** choose a percentage of working days or office days per week.
+- **Simple start:** continue with Google, or as a guest with just your first name, then choose a percentage of working days or office days per week.
 - **Monthly summary:** office, required, and remaining days appear above the calendar.
 - **Interactive calendar:** Monday-first, with disabled weekends and a highlighted current day.
 - **UK bank holidays:** England & Wales, Scotland, and Northern Ireland, with cached fallback and manual overrides.
@@ -25,7 +25,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open the local URL printed by Vite, then complete the two-step setup.
+Open the local URL printed by Vite. The landing page asks you to continue with Google or as a guest, then the two-step setup runs at `/onboarding`.
 
 ### Commands
 
@@ -108,12 +108,13 @@ The API covers a limited set of years. InOffice shows a notice when the selected
 
 ### As a guest
 
-Attendance records, preferences, setup completion, and the holiday cache are stored in **LocalStorage**, using these keys:
+Your first name, attendance records, preferences, setup completion, and the holiday cache are stored in **LocalStorage**, using these keys:
 
 ```text
 inoffice.settings.v1
 inoffice.entries.v1
 inoffice.holidays.v1
+inoffice.profile.v1
 ```
 
 Guest data belongs to the current browser and site origin. Clearing browser data or switching devices does not transfer your records; use JSON export/import to keep a backup or move them.

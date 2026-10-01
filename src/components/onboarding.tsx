@@ -1,4 +1,4 @@
-import { createContext, use, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button.tsx';
 import { Card, CardContent } from '@/components/ui/card.tsx';
@@ -8,24 +8,9 @@ import { REGION_NAMES } from '@/lib/constants.ts';
 import { track } from '@/lib/analytics.ts';
 import { useAttendance } from '@/state/attendance.tsx';
 
-interface SetupContextValue { open: boolean; start: () => void; close: () => void }
-const SetupContext = createContext<SetupContextValue | null>(null);
-
-/** Tracks whether the user asked to rerun setup; first-run setup is implied by settings. */
-export function SetupProvider({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
-  return <SetupContext value={{ open, start: () => setOpen(true), close: () => setOpen(false) }}>{children}</SetupContext>;
-}
-
-export function useSetup() {
-  const ctx = use(SetupContext);
-  if (!ctx) throw new Error('useSetup must be used within SetupProvider');
-  return ctx;
-}
-
+/** Setup steps at /onboarding: first run after the landing page, or rerun from Settings. */
 export function Onboarding() {
-  const { settings, saveSettings } = useAttendance();
-  const { close } = useSetup();
+  const { settings, saveSettings, firstName, mode } = useAttendance();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [draft, setDraft] = useState(settings);
@@ -35,7 +20,6 @@ export function Onboarding() {
   useEffect(() => { headingRef.current?.focus(); }, [step]);
 
   const finish = () => {
-    close();
     navigate('/');
     requestAnimationFrame(() => document.getElementById('settingsLink')?.focus());
   };
@@ -54,7 +38,7 @@ export function Onboarding() {
     <main id="onboarding" className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center px-4 py-10">
       <img src="/logo.png" alt="InOffice logo" className="mb-6 size-12" />
       <h1 ref={headingRef} tabIndex={-1} className="text-3xl font-semibold tracking-tight outline-none">
-        {done ? 'You’re all set' : 'Welcome to InOffice'}
+        {done ? 'You’re all set' : firstName ? `Welcome to InOffice, ${firstName}` : 'Welcome to InOffice'}
       </h1>
       <p className="mt-3 text-base leading-6 text-muted-foreground">
         {done ? 'A little clarity for your hybrid working week.' : 'Keep track of your office days and know exactly what you need to hit your hybrid-work target.'}
@@ -90,7 +74,7 @@ export function Onboarding() {
           </form>
         </CardContent>
       </Card>
-      <p className="mt-6 text-center text-xs leading-5 text-muted-foreground">Your attendance stays in this browser. No account needed.</p>
+      <p className="mt-6 text-center text-xs leading-5 text-muted-foreground">{mode === 'account' ? 'Your attendance is saved to your account.' : 'Your attendance stays in this browser. No account needed.'}</p>
       {settings.onboardingComplete && (
         <Button variant="outline" className="mx-auto mt-3" onClick={finish}>Cancel setup</Button>
       )}

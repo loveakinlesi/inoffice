@@ -6,10 +6,10 @@ import { fetchHolidays } from '@/lib/holidays.ts';
 import { monthKey } from '@/lib/attendance.ts';
 import { DEFAULT_SETTINGS } from '@/lib/validation.ts';
 import {
-  loadEntries, loadHolidayCache, loadSettings, migrateLegacy, resetData,
-  saveBackup, saveEntries, saveHolidayCache, saveSettings,
+  loadEntries, loadHolidayCache, loadProfile, loadSettings, migrateLegacy, resetData,
+  saveBackup, saveEntries, saveHolidayCache, saveProfile, saveSettings,
 } from '@/lib/storage.ts';
-import type { BackupData, Entries, HolidayCache, Settings, Status } from '@/lib/types.ts';
+import type { BackupData, Entries, HolidayCache, Profile, Settings, Status } from '@/lib/types.ts';
 
 interface StoredState { settings: Settings; entries: Entries; holidayCache: HolidayCache }
 
@@ -28,6 +28,13 @@ export interface AttendanceContextValue extends StoredState {
   /** Whether the account already has saved settings; null in local mode or while loading. */
   accountHasSettings: boolean | null;
   online: boolean;
+  /** Guest name kept in this browser (null until given). */
+  profile: Profile | null;
+  /** Name to greet the user by: Google first name when signed in, else the guest's name. */
+  firstName: string | null;
+  /** Whether we know who this is yet: signed in, or a guest who gave a first name. */
+  identified: boolean;
+  saveProfile: (profile: Profile) => boolean;
   viewDate: Date;
   holidayMessage: string;
   storageError: string | null;
@@ -79,6 +86,7 @@ function useOnline() {
 export function AttendanceProvider({ children }: { children: ReactNode }) {
   const [stored, setStored] = useState(loadStored);
   const [account, setAccount] = useState<AccountState | null>(null);
+  const [profile, setProfile] = useState(loadProfile);
   const [viewDate, setViewDateState] = useState(() => firstOfMonth(new Date()));
   const [holidayMessage, setHolidayMessage] = useState('Loading UK bank holidays…');
   const [storageError, setStorageError] = useState<string | null>(null);
@@ -102,6 +110,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     const onStorage = (e: StorageEvent) => {
       if (e.key && !e.key.startsWith('inoffice.')) return;
       setStored(loadStored());
+      setProfile(loadProfile());
     };
     addEventListener('storage', onStorage);
     return () => removeEventListener('storage', onStorage);
@@ -171,8 +180,17 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       return true;
     };
 
+    const googleFirstName = session?.user.name.trim().split(/\s+/)[0] || null;
     return {
       mode: accountMode ? 'account' : 'local',
+      profile,
+      firstName: accountMode ? googleFirstName : profile?.firstName ?? null,
+      identified: accountMode || profile !== null,
+      saveProfile: next => {
+        if (!persist(() => saveProfile(next))) return false;
+        setProfile(next);
+        return true;
+      },
       accountStatus: account?.status ?? null,
       localData: { settings: stored.settings, entries: stored.entries },
       accountHasSettings: account?.status === 'ready' ? account.data.settings !== null : null,
@@ -236,6 +254,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         const cleared = { settings: { ...DEFAULT_SETTINGS }, entries: {}, holidayCache: emptyCache() };
         cacheRef.current = cleared.holidayCache;
         setStored(cleared);
+        setProfile(null);
         void refreshHolidays();
         return true;
       },
@@ -254,7 +273,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       reloadAccount: async () => { if (account) await loadAccount(account.userId, false); },
       refreshHolidays,
     };
-  }, [stored, account, online, viewDate, holidayMessage, storageError, refreshHolidays, loadAccount]);
+  }, [stored, account, profile, session, online, viewDate, holidayMessage, storageError, refreshHolidays, loadAccount]);
 
   return <AttendanceContext value={value}>{children}</AttendanceContext>;
 }

@@ -10,7 +10,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx'
 import { ConfirmDialog, type ConfirmRequest } from '@/components/confirm-dialog.tsx';
 import { SignInButton, initials, signOutAndNotify } from '@/components/account-menu.tsx';
 import { useAuthConfig, useSession } from '@/lib/auth-client.ts';
-import { useSetup } from '@/components/onboarding.tsx';
 import { RegionControl, TargetControls, applyTargetDraft, toTargetDraft } from '@/components/target-controls.tsx';
 import { formatMonth } from '@/lib/attendance.ts';
 import { holidayCoverage } from '@/lib/holidays.ts';
@@ -94,7 +93,6 @@ function HolidaySection() {
 
 function DataSection({ confirm }: { confirm: (r: ConfirmRequest) => void }) {
   const state = useAttendance();
-  const { start: startSetup } = useSetup();
   const navigate = useNavigate();
   const fileInput = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -174,7 +172,7 @@ function DataSection({ confirm }: { confirm: (r: ConfirmRequest) => void }) {
           Reset current month
         </Button>
         <p className="text-xs text-muted-foreground">Clears manual entries for {month}.</p>
-        <Button variant="outline" className="mt-2" onClick={startSetup}>Run setup again</Button>
+        <Button variant="outline" className="mt-2" onClick={() => navigate('/onboarding')}>Run setup again</Button>
         <p className="text-xs text-muted-foreground">Your attendance history will be preserved.</p>
         <Button
           variant="destructive"

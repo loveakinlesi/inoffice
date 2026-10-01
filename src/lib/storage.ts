@@ -1,6 +1,6 @@
-import { DEFAULT_SETTINGS, validSettings, validEntries, validCache } from './validation.ts';
-import type { BackupData, Entries, HolidayCache, Settings } from './types.ts';
-export const KEYS = {settings:'inoffice.settings.v1',entries:'inoffice.entries.v1',holidays:'inoffice.holidays.v1'};
+import { DEFAULT_SETTINGS, validSettings, validEntries, validCache, validProfile } from './validation.ts';
+import type { BackupData, Entries, HolidayCache, Profile, Settings } from './types.ts';
+export const KEYS = {settings:'inoffice.settings.v1',entries:'inoffice.entries.v1',holidays:'inoffice.holidays.v1',profile:'inoffice.profile.v1'};
 type Kind = keyof typeof KEYS;
 const emptyCache = (): HolidayCache => ({fetchedAt:0,data:{}});
 function report(message: string) { globalThis.dispatchEvent?.(new CustomEvent('storage-error',{detail:message})); }
@@ -22,7 +22,9 @@ function save(kind: Kind, value: unknown) {
 export const loadSettings = () => load('settings',{...DEFAULT_SETTINGS},validSettings);
 export const loadEntries = () => load<Entries>('entries',{},validEntries);
 export const loadHolidayCache = () => load('holidays',emptyCache(),validCache);
+export const loadProfile = () => load<Profile | null>('profile',null,(x): x is Profile | null => validProfile(x));
 export const saveSettings = (s: Settings) => save('settings',s);
+export const saveProfile = (p: Profile) => save('profile',p);
 export const saveEntries = (e: Entries) => save('entries',e);
 export const saveHolidayCache = (c: HolidayCache) => save('holidays',c);
 export function saveBackup(data: BackupData) {
