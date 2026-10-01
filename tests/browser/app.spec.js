@@ -123,3 +123,32 @@ test('landing offers Google or guest; setup asks a guest for their first name',a
  await page.goto('/onboarding');
  await expect(page.getByText('Step 1 of 2')).toBeVisible();
 });
+
+test('toasts never block the page or cover the mobile tab bar',async({page})=>{
+ await page.addInitScript(()=>{localStorage.setItem('inoffice.settings.v1',JSON.stringify({attendanceMode:'percentage',targetPercentage:50,targetDaysPerWeek:null,region:'england-and-wales',onboardingComplete:true}));});
+ await page.setViewportSize({width:390,height:844});
+ await page.goto('/');
+ await page.locator('[data-date="2026-09-08"]').click();
+ const toast=page.locator('[data-slot="toast"]').first();
+ await expect(toast).toBeVisible();
+ // Let the slide-in animation settle before measuring.
+ await expect.poll(async()=>{const a=await toast.boundingBox();await page.waitForTimeout(100);const b=await toast.boundingBox();return a.y===b.y;}).toBe(true);
+ // Sits above the tab bar rather than over it.
+ const [t,bar]=await Promise.all([toast.boundingBox(),page.locator('.ios-tabbar').boundingBox()]);
+ expect(t.y+t.height).toBeLessThanOrEqual(bar.y);
+ // Whatever is underneath stays clickable while the toast is showing (no waiting for it to fade).
+ const point={x:t.x+t.width/2,y:t.y+t.height/2};
+ const under=await page.evaluate(({x,y})=>document.elementFromPoint(x,y)?.closest('[data-slot="toast"]')?'toast':'page',point);
+ expect(under).toBe('page');
+ // Repeated clicks on one day update a single toast instead of stacking.
+ const day=page.locator('[data-date="2026-09-08"]');
+ await day.click();await day.click();
+ await expect(page.locator('[data-slot="toast"]')).toHaveCount(1);
+ await expect(toast).toContainText('Tue 8 Sept: OOO');
+ await page.setViewportSize({width:1280,height:800});
+ await page.goto('/settings');
+ await page.getByRole('button',{name:'Export JSON'}).click();
+ await expect(page.getByText('Backup exported')).toBeVisible();
+ await page.getByRole('button',{name:'Delete',exact:true}).click({timeout:1000});
+ await expect(page.getByRole('alertdialog')).toBeVisible();
+});

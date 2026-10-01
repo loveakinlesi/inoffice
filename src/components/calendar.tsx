@@ -11,6 +11,22 @@ import type { Status } from '@/lib/types.ts';
 const STATUS_EMOJI: Record<Status, string> = { home: '🏠', office: '🏢', ooo: '🌴', sick: '🤒', bank: '🎉' };
 const CYCLE = ['blank', 'office', 'home', 'ooo', 'sick'] as const;
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const dayLabel = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+
+const TOAST_TIMEOUT_MS = 4000;
+/** When each day's toast is due to close, so a repeat click can update it instead of stacking a new one. */
+const dayToastExpiry = new Map<string, number>();
+
+/** One toast per day: clicking the same day again updates it (and restarts its timer) instead of stacking. */
+function showDayToast(day: Date, label: string) {
+  const id = `day-${iso(day)}`;
+  const title = `${dayLabel.format(day)}: ${label}`;
+  const now = Date.now();
+  // Leave a margin so we never update a toast that is already animating out.
+  if ((dayToastExpiry.get(id) ?? 0) - 300 > now) toast.update(id, { title, timeout: TOAST_TIMEOUT_MS });
+  else toast.add({ id, title, timeout: TOAST_TIMEOUT_MS });
+  dayToastExpiry.set(id, now + TOAST_TIMEOUT_MS);
+}
 const BLANK_META = { label: 'Blank', classes: 'bg-white text-slate-500 border-slate-200' };
 
 function CalendarNav() {
@@ -56,7 +72,7 @@ function DayCell({ day }: { day: Date }) {
     const current = hasEntry ? state.entries[key] : 'blank';
     const next = CYCLE[(CYCLE.indexOf(current as (typeof CYCLE)[number]) + 1) % CYCLE.length];
     if (!state.setEntry(key, next === 'blank' ? null : next)) return;
-    toast.add({ title: `${key}: ${next === 'blank' ? 'Blank' : STATUS_META[next].label}` });
+    showDayToast(day, next === 'blank' ? 'Cleared' : STATUS_META[next].label);
     track('attendance_status_changed');
   };
 
