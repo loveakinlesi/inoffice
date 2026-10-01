@@ -5,6 +5,7 @@ import { InstallPrompt } from '@/components/install-prompt.tsx';
 import { Onboarding, SetupProvider, useSetup } from '@/components/onboarding.tsx';
 import { Toaster } from '@/components/ui/toast.tsx';
 import { AccountLoading } from '@/components/account-status.tsx';
+import { ImportPrompt, useShouldOfferImport } from '@/components/import-prompt.tsx';
 import { CalendarPage } from '@/pages/calendar-page.tsx';
 import { OverviewPage } from '@/pages/overview-page.tsx';
 import { SettingsPage } from '@/pages/settings-page.tsx';
@@ -14,8 +15,11 @@ import { AttendanceProvider, useAttendance } from '@/state/attendance.tsx';
 function Screens() {
   const { settings, accountStatus } = useAttendance();
   const setup = useSetup();
+  const importOffer = useShouldOfferImport();
   // Wait for account data before deciding whether setup is needed, so it never flashes.
   if (accountStatus === 'loading' || accountStatus === 'error') return <AccountLoading />;
+  // Offer this browser's guest data to a newly signed-in account before anything else.
+  if (importOffer.offer) return <ImportPrompt onDecided={importOffer.decide} />;
   if (!settings.onboardingComplete || setup.open) return <Onboarding key={String(settings.onboardingComplete)} />;
   return (
     <Routes>

@@ -88,6 +88,7 @@ test('signing out returns to this browser’s guest data', async ({ page }) => {
 
   await signIn(page, uniqueEmail());
   await page.reload();
+  await page.getByRole('button', { name: 'Not now' }).click();
   await completeSetup(page);
   await expect(page.locator('[data-date="2026-09-10"]')).toHaveAttribute('title', 'Undecided');
 
@@ -95,4 +96,34 @@ test('signing out returns to this browser’s guest data', async ({ page }) => {
   await page.getByRole('menuitem', { name: 'Sign out' }).click();
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
   await expect(page.locator('[data-date="2026-09-10"]')).toHaveAttribute('title', 'OOO');
+});
+
+test('first sign-in offers to import this browser’s data, once', async ({ page }) => {
+  await prepare(page);
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('seeded')) return;
+    sessionStorage.setItem('seeded', '1');
+    localStorage.setItem('inoffice.settings.v1', JSON.stringify({ attendanceMode: 'days', targetPercentage: 60, targetDaysPerWeek: 3, region: 'scotland', onboardingComplete: true }));
+    localStorage.setItem('inoffice.entries.v1', JSON.stringify({ '2026-09-10': 'ooo', '2026-09-11': 'office' }));
+  });
+  await page.goto('/');
+  await signIn(page, uniqueEmail());
+  await page.reload();
+
+  await expect(page.getByRole('heading', { name: 'Import data from this device?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Import 2 recorded days' }).click();
+  await expect(page.getByText('Imported 2 recorded days')).toBeVisible();
+  await expect(page.locator('[data-date="2026-09-10"]')).toHaveAttribute('title', 'OOO');
+  await expect(page.locator('[data-date="2026-09-11"]')).toHaveAttribute('title', 'Office');
+
+  const data = await (await page.request.get('/api/data')).json();
+  expect(data.settings).toMatchObject({ attendanceMode: 'days', targetDaysPerWeek: 3, region: 'scotland' });
+  expect(data.entries).toEqual({ '2026-09-10': 'ooo', '2026-09-11': 'office' });
+
+  // Already answered for this account on this device: no prompt after a reload.
+  await page.reload();
+  await expect(page.locator('[data-date="2026-09-10"]')).toHaveAttribute('title', 'OOO');
+  await expect(page.getByRole('heading', { name: 'Import data from this device?' })).toBeHidden();
+  // The guest copy is kept.
+  expect(JSON.parse(await page.evaluate(() => localStorage.getItem('inoffice.entries.v1')))).toEqual({ '2026-09-10': 'ooo', '2026-09-11': 'office' });
 });
