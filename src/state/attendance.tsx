@@ -69,7 +69,7 @@ const OFFLINE_MESSAGE = 'You’re offline. Changes can’t be saved until you re
  * Day changes wait this long after the last click before saving, so cycling a day through several
  * statuses sends one request with the final value instead of several that could land out of order.
  */
-export const ENTRY_SAVE_DELAY_MS = 500;
+export const ENTRY_SAVE_DELAY_MS = 1000;
 
 function loadStored(): StoredState {
   try { migrateLegacy(); } catch { /* The storage layer reports recovery instructions. */ }
