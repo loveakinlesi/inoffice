@@ -100,11 +100,14 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   const [holidayMessage, setHolidayMessage] = useState('Loading UK bank holidays…');
   const [storageError, setStorageError] = useState<string | null>(null);
   const online = useOnline();
-  const { data: session } = useSession();
+  const { data: session, isPending: sessionPending } = useSession();
   const userId = session?.user.id ?? null;
   // Latest cache for async refreshes, and counters so only the newest request applies.
   const cacheRef = useRef(stored.holidayCache);
   cacheRef.current = stored.holidayCache;
+  // Latest guest entries, so several changes in one tick (e.g. planning a month at once) build on each other.
+  const entriesRef = useRef(stored.entries);
+  entriesRef.current = stored.entries;
   const holidayRequest = useRef(0);
   const accountRequest = useRef(0);
   // Debounced day saves: the latest unsent status per date, and each date's chain of in-flight saves
@@ -251,7 +254,9 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         setProfile(next);
         return true;
       },
-      accountStatus: account?.status ?? null,
+      // Until we know who is signed in (and their data has started loading), report 'loading' so routing
+      // waits instead of treating a signed-in user as a new guest and redirecting deep links to '/'.
+      accountStatus: account?.status ?? (sessionPending || (userId && account === null) ? 'loading' : null),
       localData: { settings: stored.settings, entries: stored.entries },
       accountHasSettings: account?.status === 'ready' ? account.data.settings !== null : null,
       settings: accountMode ? accountSettings : stored.settings,
@@ -284,8 +289,9 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
           pendingSaves.current.set(date, { status, onSaved, timer: setTimeout(() => void sendEntry(date), ENTRY_SAVE_DELAY_MS) });
           return true;
         }
-        const entries = update(stored.entries);
+        const entries = update(entriesRef.current);
         if (!persist(() => saveEntries(entries))) return false;
+        entriesRef.current = entries;
         setStored(s => ({ ...s, entries }));
         onSaved?.();
         return true;
@@ -341,7 +347,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       flushSaves: () => flushSaves(),
       refreshHolidays,
     };
-  }, [stored, account, profile, session, online, viewDate, holidayMessage, storageError, refreshHolidays, loadAccount, flushSaves, sendEntry]);
+  }, [stored, account, profile, session, sessionPending, userId, online, viewDate, holidayMessage, storageError, refreshHolidays, loadAccount, flushSaves, sendEntry]);
 
   return <AttendanceContext value={value}>{children}</AttendanceContext>;
 }

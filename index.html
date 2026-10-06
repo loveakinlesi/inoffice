@@ -3,11 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="color-scheme" content="light" />
-  <meta name="theme-color" content="#0f172a" />
-  <title>InOffice — Hybrid Office Attendance Tracker</title>
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#f6f6fa" />
+  <script>
+    // Apply the saved theme before first paint (kept in sync with src/lib/theme.ts).
+    try {
+      var t = localStorage.getItem('inoffice.theme');
+      if (t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', '#15141f');
+      }
+    } catch (e) {}
+  </script>
+  <title>InOffice — Hybrid Office Day Planner and Tracker</title>
 
-  <meta name="description" content="Track your hybrid office attendance and stay on top of your monthly office target." />
+  <meta name="description" content="Plan and track your hybrid office days and stay on top of your monthly office target." />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/favicon.png" type="image/png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

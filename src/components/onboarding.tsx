@@ -70,7 +70,7 @@ export function Onboarding() {
         {done ? `You’re all set${greetingName ? `, ${greetingName}` : ''}` : greetingName ? `Welcome to InOffice, ${greetingName}` : 'Welcome to InOffice'}
       </h1>
       <p className={cn('mt-3 text-base leading-7 text-muted-foreground', index > 0 && !done && 'sr-only')}>
-        {done ? 'A little clarity for your hybrid working week.' : 'Keep track of your office days and know exactly what you need to hit your hybrid-work target.'}
+        {done ? 'A little clarity for your hybrid working week.' : 'Plan your office days, log them as you go, and always know what you need to hit your hybrid-work target.'}
       </p>
       <div className="mt-8">
           <form id="setupForm" onSubmit={submit} noValidate={step === 'name'}>

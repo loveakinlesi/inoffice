@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu.tsx';
 import { Spinner } from '@/components/ui/spinner.tsx';
 import { toast } from '@/components/ui/toast.tsx';
-import { signInWithGoogle, signOut, useAuthConfig, useSession } from '@/lib/auth-client.ts';
+import { deleteUser, signInWithGoogle, signOut, useAuthConfig, useSession } from '@/lib/auth-client.ts';
 import { useAttendance } from '@/state/attendance.tsx';
 
 export const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]!.toUpperCase()).join('') || '?';
@@ -36,6 +36,23 @@ export function useSignOut() {
     await flushSaves();
     const { error } = await signOut();
     toast.add({ title: error ? 'Could not sign out. Check your connection and try again.' : 'Signed out' });
+  };
+}
+
+/**
+ * Permanently deletes the signed-in account and its attendance. Pending saves go first so none
+ * fail after the session is gone. Better Auth only allows this on a recent sign-in.
+ */
+export function useDeleteAccount() {
+  const { flushSaves } = useAttendance();
+  return async () => {
+    await flushSaves();
+    const { error } = await deleteUser();
+    toast.add({
+      title: !error ? 'Account deleted'
+        : error.code === 'SESSION_EXPIRED' ? 'For your security, sign out and sign in again, then delete your account.'
+        : 'Could not delete your account. Check your connection and try again.',
+    });
   };
 }
 

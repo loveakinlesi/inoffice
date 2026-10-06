@@ -127,3 +127,15 @@ test('deleting data, and deleting the account, removes attendance', async () => 
   const { eq } = await import('drizzle-orm');
   assert.equal((await db().select().from(schema.attendanceEntries).where(eq(schema.attendanceEntries.userId, user.id))).length, 0);
 });
+
+test('users can delete their own account through Better Auth', async () => {
+  const user = await signedInUser('delete-account@example.test');
+  await call('/entries/2026-09-08', { method: 'PUT', headers: user.headers, body: { status: 'office' } });
+  const res = await call('/auth/delete-user', { method: 'POST', headers: user.headers, body: {} });
+  assert.equal(res.status, 200);
+  assert.equal((await call('/data', { headers: user.headers })).status, 401);
+  const { db } = await import('../server/db/client.ts');
+  const { eq } = await import('drizzle-orm');
+  assert.equal((await db().select().from(schema.user).where(eq(schema.user.id, user.id))).length, 0);
+  assert.equal((await db().select().from(schema.attendanceEntries).where(eq(schema.attendanceEntries.userId, user.id))).length, 0);
+});

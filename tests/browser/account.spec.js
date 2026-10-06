@@ -197,3 +197,18 @@ test('a change made just before reloading or signing out is still saved', async 
   const { entries } = await (await page.request.get('/api/data')).json();
   expect(entries).toMatchObject({ '2026-09-16': 'office', '2026-09-17': 'office' });
 });
+
+test('deep links and reloads keep their page while signed in', async ({ page }) => {
+  await prepare(page);
+  await signIn(page, uniqueEmail());
+  await page.goto('/');
+  await completeSetup(page);
+  for (const path of ['/overview', '/settings']) {
+    await page.goto(path);
+    await expect(page).toHaveURL(new RegExp(`${path}$`));
+    await expect(page.getByRole('heading', { name: 'Welcome to InOffice' })).toHaveCount(0);
+  }
+  await page.reload();
+  await expect(page).toHaveURL(/\/settings$/);
+  await expect(page.locator('#settingsPage')).toBeVisible();
+});

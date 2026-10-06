@@ -1,12 +1,12 @@
 {
   "name": "InOffice",
   "short_name": "InOffice",
-  "description": "Track your hybrid office attendance and stay on top of your monthly office target.",
+  "description": "Plan and track your hybrid office days and stay on top of your monthly office target.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#0f172a",
+  "background_color": "#f6f6fa",
+  "theme_color": "#2a9d8f",
   "icons": [
     {
       "src": "/icon-192.png",

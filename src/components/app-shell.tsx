@@ -5,6 +5,7 @@ import { buttonVariants } from '@/components/ui/button.tsx';
 import { track } from '@/lib/analytics.ts';
 import { AccountMenu } from '@/components/account-menu.tsx';
 import { OfflineBanner } from '@/components/account-status.tsx';
+import { InstallPrompt } from '@/components/install-prompt.tsx';
 import { useAttendance } from '@/state/attendance.tsx';
 
 const TABS = [
@@ -15,20 +16,17 @@ const TABS = [
 
 function Header() {
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-border/70 bg-surface/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
         <Link to="/" className="flex min-w-0 items-center gap-3 rounded-xl">
           <img src="/logo.png" alt="" className="size-10 shrink-0 rounded-xl object-cover shadow-sm" />
           <div className="min-w-0">
             <h1 className="truncate text-sm font-semibold sm:text-base">InOffice</h1>
-            <p className="truncate text-xs text-muted-foreground">
-              <span className="sm:hidden">Your hybrid attendance tracker.</span>
-              <span className="hidden sm:inline">Stay on top of your hybrid office attendance.</span>
-            </p>
+            <p className="hidden truncate text-xs text-muted-foreground sm:block">Plan and track your hybrid office days.</p>
           </div>
         </Link>
         <div className="header-actions flex items-center gap-2">
-          <AccountMenu />
+        
           <NavLink
             id="overviewBtn"
             to="/overview"
@@ -46,6 +44,7 @@ function Header() {
           >
             <SettingsIcon />
           </NavLink>
+            <AccountMenu />
         </div>
       </div>
     </header>
@@ -71,13 +70,14 @@ export function AppShell() {
     <div id="app" className="app-shell min-h-screen">
       <a href="#main" className="sr-only focus:not-sr-only">Skip to dashboard</a>
       <Header />
-      <main id="main" className="mx-auto flex max-w-7xl flex-col gap-4 px-3 py-4 sm:gap-6 sm:px-6 sm:py-6 lg:px-8">
+      <main id="main" className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:gap-6 sm:px-6 sm:py-6 lg:px-8">
         <OfflineBanner />
+        <InstallPrompt />
         <Outlet />
       </main>
       <TabBar />
       {storageError && (
-        <p id="storageError" role="alert" className="fixed inset-x-4 bottom-4 z-80 rounded-xl bg-red-100 p-4 text-red-900">{storageError}</p>
+        <p id="storageError" role="alert" className="fixed inset-x-4 bottom-4 z-80 rounded-xl bg-destructive/10 p-4 text-destructive ring-1 ring-destructive/20 backdrop-blur-xl">{storageError}</p>
       )}
     </div>
   );

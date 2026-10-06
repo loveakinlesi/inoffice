@@ -1,8 +1,8 @@
 # InOffice
 
-**Stay on top of your hybrid office attendance.**
+**Plan and track your hybrid office days.**
 
-InOffice is a lightweight attendance tracker for hybrid workers. Set your office target, record your days, and see what you need to meet your monthly goal. Use it as a guest and your attendance stays in your browser, or sign in with Google to keep it in sync across devices.
+InOffice is a lightweight planner and tracker for hybrid workers. Set your office target, plan which days you'll go in, log what actually happened, and see what you need to meet your monthly goal. Use it as a guest and your attendance stays in your browser, or sign in with Google to keep it in sync across devices.
 
 ## Features
 

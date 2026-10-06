@@ -25,7 +25,7 @@ test('onboarding, calendar cycling, navigation, persistence, settings and overvi
  await expect(page.locator('[data-date="2026-09-07"]')).toHaveAttribute('title','Test bank holiday');
  const day=page.locator('[data-date="2026-09-08"]');
  for(const label of ['Office','Home','OOO','Sick','Undecided']){await day.click();await expect(day).toHaveAttribute('title',label);}
- await page.locator('[data-date="2026-09-07"]').click();await expect(page.locator('[data-date="2026-09-07"]')).toHaveAttribute('title','Test bank holiday');
+ await page.locator('[data-date="2026-09-07"]').click({force:true});await expect(page.locator('[data-date="2026-09-07"]')).toHaveAttribute('title','Test bank holiday');
  await expect(page.locator('[data-date="2026-09-12"]')).toBeDisabled();
  await page.getByRole('button',{name:'Previous month'}).click();await expect(page.locator('#monthTitleMobile')).toHaveText('August 2026');
  await page.getByRole('button',{name:'Next month'}).click();await page.getByRole('button',{name:'Next month'}).click();await expect(page.locator('#monthTitleMobile')).toHaveText('October 2026');
@@ -46,7 +46,7 @@ test('onboarding, calendar cycling, navigation, persistence, settings and overvi
  await page.getByRole('combobox',{name:'Which UK bank holiday calendar should we use?'}).selectOption('northern-ireland');
  await page.getByRole('button',{name:'Cancel'}).click();await expect(page.locator('#regionSummary')).toHaveText('Scotland');
  await page.getByRole('link',{name:'Year overview',exact:true}).filter({visible:true}).click();await expect(page).toHaveURL(/\/overview$/);await expect(page.locator('#overviewGridPage [data-overview-month]')).toHaveCount(12);
- await expect(page.locator('#overviewGridPage [data-overview-month="0"]')).toContainText('Missed');await page.locator('#overviewGridPage [data-overview-month="0"]').click();await expect(page).toHaveURL(/\/$/);await expect(page.locator('#monthTitleMobile')).toHaveText('January 2026');
+ await expect(page.locator('#overviewGridPage summary').first()).toContainText('Nothing logged');await page.locator('#overviewGridPage summary').first().click();await page.locator('#overviewGridPage [data-overview-month="0"]').click();await expect(page).toHaveURL(/\/$/);await expect(page.locator('#monthTitleMobile')).toHaveText('January 2026');
  await page.getByRole('link',{name:'Open settings'}).click();await page.keyboard.press('Escape');await expect(page.locator('#settingsPage')).toBeVisible();
  expect(errors).toEqual([]);
 });
@@ -151,4 +151,92 @@ test('toasts never block the page or cover the mobile tab bar',async({page})=>{
  await expect(page.getByText('Backup exported')).toBeVisible();
  await page.getByRole('button',{name:'Delete',exact:true}).click({timeout:1000});
  await expect(page.getByRole('alertdialog')).toBeVisible();
+});
+
+test('status picker, undo and keyboard navigation in the calendar',async({page})=>{
+ await page.addInitScript(()=>{localStorage.setItem('inoffice.settings.v1',JSON.stringify({attendanceMode:'percentage',targetPercentage:50,targetDaysPerWeek:null,region:'england-and-wales',onboardingComplete:true}));});
+ await page.goto('/');
+ const day=page.locator('[data-date="2026-09-08"]');
+ // Right-click picks a status directly.
+ await day.click({button:'right'});
+ await page.getByRole('menuitem',{name:'Sick'}).click();
+ await expect(day).toHaveAttribute('title','Sick');
+ // Undo in the toast restores the previous status.
+ await page.locator('[data-slot="toast"]').getByRole('button',{name:'Undo'}).click();
+ await expect(day).toHaveAttribute('title','Undecided');
+ // Bank holidays are announced as such and not offered as changeable.
+ await expect(page.locator('[data-date="2026-09-07"]')).toHaveAttribute('aria-disabled','true');
+ // The grid is one tab stop; arrow keys move between weekdays, skipping weekends.
+ await day.focus();
+ await page.keyboard.press('ArrowRight');await expect(page.locator('[data-date="2026-09-09"]')).toBeFocused();
+ await page.keyboard.press('ArrowDown');await expect(page.locator('[data-date="2026-09-16"]')).toBeFocused();
+ await page.locator('[data-date="2026-09-11"]').focus();await page.keyboard.press('ArrowRight');await expect(page.locator('[data-date="2026-09-14"]')).toBeFocused();
+ await page.keyboard.press('Enter');await expect(page.locator('[data-date="2026-09-14"]')).toHaveAttribute('title','Office');
+ expect(await page.locator('#calendar [data-date][tabindex="0"]').count()).toBe(1);
+});
+
+test('an empty month offers to log today and catch up on earlier days, once',async({page})=>{
+ await page.clock.install({time:new Date('2026-09-09T12:00:00')});
+ await page.addInitScript(()=>{localStorage.setItem('inoffice.settings.v1',JSON.stringify({attendanceMode:'percentage',targetPercentage:50,targetDaysPerWeek:null,region:'england-and-wales',onboardingComplete:true}));});
+ await page.goto('/');
+ const card=page.getByRole('region',{name:'Let’s get this month started'});
+ await expect(card).toBeVisible();
+ // Bank holidays aren't offered as catch-up days.
+ await expect(card.getByRole('button',{name:'Mon 7'})).toHaveCount(0);
+ await card.getByRole('button',{name:'In the office'}).click();
+ await expect(page.locator('[data-date="2026-09-09"]')).toHaveAttribute('title','Office');
+ await card.getByRole('button',{name:'Tue 8'}).click();
+ await expect(page.locator('[data-date="2026-09-08"]')).toHaveAttribute('title','Office');
+ await expect(card).toContainText('1 office day added.');
+ await card.getByRole('button',{name:'Done'}).click();
+ await expect(card).toHaveCount(0);
+ await page.reload();
+ await expect(page.getByRole('region',{name:'Let’s get this month started'})).toHaveCount(0);
+});
+
+test('planned office days count toward the plan but never read as done',async({page})=>{
+ const plan=Object.fromEntries(['08','09','10','11','14','15','16','17','18','21','22'].map(d=>[`2026-09-${d}`,'office']));
+ await page.addInitScript(plan=>{localStorage.setItem('inoffice.settings.v1',JSON.stringify({attendanceMode:'percentage',targetPercentage:50,targetDaysPerWeek:null,region:'england-and-wales',onboardingComplete:true}));localStorage.setItem('inoffice.entries.v1',JSON.stringify(plan));localStorage.setItem('inoffice.firststeps.v1','2026-09');},plan);
+ await page.goto('/');
+ await expect(page.locator('#statusMessage')).toHaveText('You’re on plan');
+ await expect(page.getByRole('progressbar',{name:'Office days progress'})).toHaveAttribute('aria-valuetext','0 done and 11 planned of 11 required office days');
+ await expect(page.locator('[data-date="2026-09-08"]')).toHaveClass(/calendar-day-planned/);
+ await expect(page.locator('[data-date="2026-09-08"]')).toHaveAttribute('aria-label','Tuesday 8 September, Planned: Office');
+ await page.getByRole('link',{name:'Year overview',exact:true}).filter({visible:true}).click();
+ await expect(page.locator('#overviewGridPage [data-overview-month="8"]')).toContainText('On plan');await expect(page.locator('#overviewGridPage [data-overview-month="8"]')).toContainText('0/11');await expect(page.locator('#overviewGridPage [data-overview-month="8"]')).toContainText('+11 planned');
+});
+
+test('gaps in a past month are not verdicts, and can be filled in',async({page})=>{
+ await page.addInitScript(()=>{localStorage.setItem('inoffice.settings.v1',JSON.stringify({attendanceMode:'percentage',targetPercentage:50,targetDaysPerWeek:null,region:'england-and-wales',onboardingComplete:true}));localStorage.setItem('inoffice.entries.v1',JSON.stringify({'2026-08-03':'office','2026-08-04':'office'}));localStorage.setItem('inoffice.catchup.v1',JSON.stringify(['2026-09']));});
+ await page.goto('/');
+ await page.getByRole('button',{name:'Previous month'}).click();
+ await expect(page.locator('#statusMessage')).toHaveText(/weekdays not logged/);
+ await expect(page.locator('[data-date="2026-08-05"]')).toHaveClass(/calendar-day-unlogged/);
+ const card=page.getByRole('region',{name:/Fill in the gaps in August/});
+ await card.getByRole('button',{name:'Wed 5'}).click();
+ await expect(page.locator('[data-date="2026-08-05"]')).toHaveAttribute('title','Office');
+ await card.getByRole('button',{name:'The rest were home days'}).click();
+ await expect(page.locator('[data-date="2026-08-06"]')).toHaveAttribute('title','Home');
+ await expect(page.locator('#statusMessage')).not.toHaveText(/not logged/);
+ await page.getByRole('link',{name:'Year overview',exact:true}).filter({visible:true}).click();
+ await expect(page.locator('#overviewGridPage [data-overview-month="7"]')).not.toContainText('not logged');
+});
+
+test('plan your usual days fills a month in one go, with one undo',async({page})=>{
+ await page.addInitScript(()=>{localStorage.setItem('inoffice.settings.v1',JSON.stringify({attendanceMode:'percentage',targetPercentage:50,targetDaysPerWeek:null,region:'england-and-wales',onboardingComplete:true}));});
+ await page.goto('/');
+ await page.getByRole('button',{name:'Next month'}).click();
+ const card=page.getByRole('region',{name:'Plan your usual days'});
+ for(const d of ['Tue','Wed','Thu']) await card.getByRole('button',{name:d}).click();
+ await card.getByRole('button',{name:/Plan \d+ office days/}).click();
+ await expect(page.locator('[data-date="2026-10-06"]')).toHaveAttribute('title','Office');
+ await expect(page.locator('[data-date="2026-10-05"]')).toHaveAttribute('title','Undecided');
+ await expect(page.locator('[data-date="2026-10-06"]')).toHaveClass(/calendar-day-planned/);
+ const toast=page.locator('[data-slot="toast"]').filter({hasText:'Planned'});
+ await expect(toast).toContainText('office days in October');
+ await toast.getByRole('button',{name:'Undo'}).click();
+ await expect(page.locator('[data-date="2026-10-06"]')).toHaveAttribute('title','Undecided');
+ // A single day's toast says it was a plan and what it did to the month.
+ await page.locator('[data-date="2026-10-07"]').click();
+ await expect(page.locator('[data-slot="toast"]').filter({hasText:'Wed 7 Oct'})).toContainText(/Planned Wed 7 Oct: Office · \d+ more to plan/);
 });

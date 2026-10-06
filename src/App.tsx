@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { AppShell } from '@/components/app-shell.tsx';
-import { InstallPrompt } from '@/components/install-prompt.tsx';
 import { Onboarding } from '@/components/onboarding.tsx';
 import { Toaster } from '@/components/ui/toast.tsx';
 import { AccountLoading } from '@/components/account-status.tsx';
@@ -52,7 +51,6 @@ export default function App() {
     <AttendanceProvider>
       <Toaster timeout={4000}>
         <Screens />
-        <InstallPrompt />
       </Toaster>
     </AttendanceProvider>
   );

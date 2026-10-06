@@ -1,4 +1,4 @@
-const allowed = new Set(['onboarding_completed','target_mode_selected','month_changed','attendance_status_changed','settings_opened','year_overview_opened','backup_exported','backup_imported']);
+const allowed = new Set(['onboarding_completed','target_mode_selected','month_changed','attendance_status_changed','settings_opened','year_overview_opened','backup_exported','backup_imported','first_steps_done','first_steps_skipped']);
 let analytics: typeof import('@vercel/analytics') | undefined;
 export async function initAnalytics() {
   if (!import.meta.env.PROD) return;

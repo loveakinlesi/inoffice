@@ -7,12 +7,14 @@ import { Spinner } from '@/components/ui/spinner.tsx';
 import { toast } from '@/components/ui/toast.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx';
 import { ConfirmDialog, type ConfirmRequest } from '@/components/confirm-dialog.tsx';
-import { SignInButton, initials, useSignOut } from '@/components/account-menu.tsx';
+import { SignInButton, initials, useDeleteAccount, useSignOut } from '@/components/account-menu.tsx';
 import { useAuthConfig, useSession } from '@/lib/auth-client.ts';
 import { localSummary } from '@/components/import-prompt.tsx';
 import { RegionControl, TargetControls, applyTargetDraft, targetDescription, toTargetDraft } from '@/components/target-controls.tsx';
 import { REGION_NAMES } from '@/lib/constants.ts';
-import { PencilIcon } from 'lucide-react';
+import { MonitorIcon, MoonIcon, PencilIcon, SunIcon } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group.tsx';
+import { setTheme, useTheme, type ThemePreference } from '@/lib/theme.ts';
 import { formatMonth } from '@/lib/attendance.ts';
 import { holidayCoverage } from '@/lib/holidays.ts';
 import { validateBackup } from '@/lib/validation.ts';
@@ -187,6 +189,41 @@ function HolidaySection() {
   );
 }
 
+const THEMES = [
+  { value: 'light', label: 'Light', icon: SunIcon },
+  { value: 'dark', label: 'Dark', icon: MoonIcon },
+  { value: 'system', label: 'System', icon: MonitorIcon },
+] as const;
+
+function AppearanceSection() {
+  const theme = useTheme();
+  return (
+    <SettingsGroup title="Appearance">
+      <SettingsRow
+        title="Theme"
+        description="System follows your device’s light or dark setting."
+        stack
+        action={(
+          <ToggleGroup
+            aria-label="Theme"
+            variant="outline"
+            spacing={0}
+            value={[theme]}
+            onValueChange={([next]) => { if (next) setTheme(next as ThemePreference); }}
+          >
+            {THEMES.map(({ value, label, icon: Icon }) => (
+              <ToggleGroupItem key={value} value={value} className="flex-1 px-3 aria-pressed:bg-accent aria-pressed:text-accent-foreground">
+                <Icon data-icon="inline-start" />
+                {label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        )}
+      />
+    </SettingsGroup>
+  );
+}
+
 function DataSection({ confirm }: { confirm: (r: ConfirmRequest) => void }) {
   const state = useAttendance();
   const navigate = useNavigate();
@@ -194,6 +231,7 @@ function DataSection({ confirm }: { confirm: (r: ConfirmRequest) => void }) {
   const [importError, setImportError] = useState<string | null>(null);
   const month = formatMonth(state.viewDate);
   const account = state.mode === 'account';
+  const deleteAccount = useDeleteAccount();
 
   const exportBackup = () => {
     const payload = { app: 'InOffice', version: 1, exportedAt: new Date().toISOString(), settings: state.settings, entries: state.entries, holidayCache: state.holidayCache };
@@ -296,6 +334,26 @@ function DataSection({ confirm }: { confirm: (r: ConfirmRequest) => void }) {
             </Button>
           )}
         />
+        {account && (
+          <SettingsRow
+            title="Delete account"
+            description="Permanently deletes your InOffice account and everything saved to it."
+            action={(
+              <Button
+                variant="destructive"
+                onClick={() => confirm({
+                  title: 'Delete your account?',
+                  description: 'Permanently delete your InOffice account, settings and attendance history, and sign out everywhere? This cannot be undone. Data saved only in this browser is kept.',
+                  confirmLabel: 'Delete account',
+                  destructive: true,
+                  onConfirm: () => void deleteAccount(),
+                })}
+              >
+                Delete account
+              </Button>
+            )}
+          />
+        )}
       </SettingsGroup>
     </>
   );
@@ -315,6 +373,7 @@ export function SettingsPage() {
         {/* Remount when settings change elsewhere (import, setup, another tab) so the draft resets. */}
         <PreferencesForm key={JSON.stringify(settings)} />
         <HolidaySection />
+        <AppearanceSection />
         <DataSection confirm={setRequest} />
       </div>
       <ConfirmDialog request={request} onClose={() => setRequest(null)} />

@@ -14,10 +14,10 @@ export function LandingPage() {
       <img src="/logo.png" alt="InOffice logo" className="mb-8 size-14" />
       <h1 className="text-4xl font-semibold tracking-tight">Welcome to InOffice</h1>
       <p className="mt-4 text-lg leading-7 text-muted-foreground">
-        Keep track of your office days and know exactly what you need to hit your hybrid-work target.
+        Plan your office days, log them as you go, and always know what you need to hit your hybrid-work target.
       </p>
       <div className="mt-10 flex flex-col gap-3">
-        {google && <SignInButton label="Continue with Google" className="h-11 w-full bg-white text-base" />}
+        {google && <SignInButton label="Continue with Google" className="h-11 w-full bg-card text-base" />}
         <Link
           to="/onboarding"
           className={cn(buttonVariants({ size: 'lg' }), 'h-11 w-full text-base')}

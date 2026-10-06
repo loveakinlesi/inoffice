@@ -52,6 +52,9 @@ function createAuth(database: Database) {
     secret: env.BETTER_AUTH_SECRET,
     database: drizzleAdapter(database, { provider: 'pg', schema, schemaName: 'inoffice' }),
     socialProviders: google,
+    // Without a password to re-check, deletion requires a session younger than session.freshAge
+    // (1 day by default). InOffice data rows cascade from the user, so this removes everything.
+    user: { deleteUser: { enabled: true } },
     trustedOrigins: [...allowedHosts.flatMap(h => [`http://${h}`, `https://${h}`]), ...extraTrustedOrigins],
     session: {
       expiresIn: 60 * 60 * 24 * 30,

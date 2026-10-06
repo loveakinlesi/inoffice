@@ -28,3 +28,22 @@ export function calculateMonth(date: Date, state: AttendanceState): MonthCounts 
   c.achieved = c.remaining === 0;
   return c;
 }
+
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+/** Weekdays before today with nothing logged and no bank holiday: gaps in the record, not absences. */
+export function unloggedDays(month: Date, state: AttendanceState, now = new Date()): Date[] {
+  const today = startOfDay(now);
+  return getMonthDates(month).filter(d => d < today && isWeekday(d) && getStatus(d, state) === 'blank');
+}
+
+/** Office days split into done (today or earlier) and planned (after today). */
+export function officeSplit(month: Date, state: AttendanceState, now = new Date()): { done: number; planned: number } {
+  const today = startOfDay(now);
+  let done = 0, planned = 0;
+  for (const d of getMonthDates(month)) {
+    if (!isWeekday(d) || getStatus(d, state) !== 'office') continue;
+    if (d <= today) done++; else planned++;
+  }
+  return { done, planned };
+}
