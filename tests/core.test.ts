@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateMonth, getStatus } from '../src/lib/attendance.ts';
+import { calculateMonth, getStatus, iso } from '../src/lib/attendance.ts';
 import { forecast } from '../src/lib/forecast.ts';
 import { fetchHolidays, normalizeHolidays } from '../src/lib/holidays.ts';
 import { DEFAULT_SETTINGS, validateBackup } from '../src/lib/validation.ts';
@@ -49,4 +49,37 @@ test('LocalStorage abstraction migrates legacy and rolls back failed imports',as
  const old=store.loadEntries();failKey=store.KEYS.holidays;
  assert.throws(()=>store.saveBackup({settings:{...DEFAULT_SETTINGS},entries:{},holidayCache:{fetchedAt:0,data:{}}}));assert.deepEqual(store.loadEntries(),old);
  failKey=null;values.set('unrelated','keep');store.resetData();assert.equal(values.get('unrelated'),'keep');assert.equal(store.loadSettings().onboardingComplete,false);
+});
+test('leave cycles span the year boundary and cycle starts clamp to short months',async()=>{
+ const {cycleFor,nextCycle}=await import('../src/lib/leave.ts');
+ const apr={cycleStartMonth:4,cycleStartDay:1,allowance:25,carryover:{}};
+ const c=cycleFor(new Date(2026,2,31),apr);assert.equal(c.key,'2025-04-01');assert.equal(c.label,'2025/26');
+ const d=cycleFor(new Date(2026,3,1),apr);assert.equal(d.key,'2026-04-01');assert.equal(iso(d.end),'2027-03-31');assert.equal(nextCycle(d,apr).key,'2027-04-01');
+ const jan={...apr,cycleStartMonth:1};assert.equal(cycleFor(new Date(2026,5,1),jan).label,'2026');
+ const leap={...apr,cycleStartMonth:2,cycleStartDay:29};assert.equal(cycleFor(new Date(2026,2,15),leap).key,'2026-02-28');
+});
+test('leave balance: carryover is spent first, expires, and over-booking is flagged',async()=>{
+ const {calculateLeave,cycleFor,wouldOverdraw}=await import('../src/lib/leave.ts');
+ const leave={cycleStartMonth:1,cycleStartDay:1,allowance:3,carryover:{'2026-01-01':{days:2,expires:'2026-01-31'}}};
+ const s=makeState();const cycle=cycleFor(new Date(2026,5,1),leave);
+ // One OOO before expiry (uses carryover), two after (use allowance): 1 carried day lost, 1 allowance left.
+ s.entries={'2026-01-12':'ooo','2026-03-02':'ooo','2026-03-03':'ooo','2026-03-07':'ooo'};
+ let b=calculateLeave(cycle,leave,s,new Date(2026,1,15));
+ assert.equal(b.used,3);assert.equal(b.carryoverUsed,1);assert.equal(b.carryoverLost,1);assert.equal(b.remaining,1);assert.equal(b.taken,1);assert.equal(b.planned,2);assert.deepEqual(b.overdrawn,[]);assert.equal(b.carryoverExpired,true);
+ s.entries['2026-03-04']='ooo';s.entries['2026-03-05']='ooo';
+ b=calculateLeave(cycle,leave,s,new Date(2026,1,15));assert.equal(b.used,5);assert.deepEqual(b.overdrawn,['2026-03-05']);assert.equal(b.remaining,-1);
+ assert.ok(wouldOverdraw(new Date(2026,2,6),leave,s));
+ assert.equal(wouldOverdraw(new Date(2026,2,7),leave,s),null,'weekends never use leave');
+ // Bank holidays are not leave even if marked OOO, and no expiry means carryover is never lost.
+ const open={...leave,carryover:{'2026-01-01':{days:2,expires:null}}};
+ const h=makeState();h.holidayCache.data['england-and-wales']={'2026-03-02':'Bank'};h.entries={'2026-03-02':'ooo','2026-03-03':'ooo'};
+ b=calculateLeave(cycle,open,h,new Date(2026,1,15));assert.equal(b.used,1);assert.equal(b.carryoverLost,0);assert.equal(b.remaining,4);
+});
+test('leave settings validate and survive backup',()=>{
+ const s=makeState();const backup={app:'InOffice',version:1,exportedAt:new Date().toISOString(),...s};
+ const leave={cycleStartMonth:4,cycleStartDay:1,allowance:27.5,carryover:{'2026-04-01':{days:3,expires:'2026-06-30'}}};
+ assert.deepEqual(validateBackup({...backup,settings:{...s.settings,leave}}).settings.leave,leave);
+ assert.equal(validateBackup(backup).settings.leave,undefined);
+ for(const bad of [{...leave,allowance:-1},{...leave,allowance:1.3},{...leave,cycleStartMonth:13},{...leave,cycleStartMonth:2,cycleStartDay:30},{...leave,carryover:{'x':{days:1,expires:null}}},{...leave,carryover:{'2026-04-01':{days:1,expires:'2026-02-30'}}}])
+  assert.throws(()=>validateBackup({...backup,settings:{...s.settings,leave:bad}}));
 });

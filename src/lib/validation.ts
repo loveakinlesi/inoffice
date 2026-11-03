@@ -1,6 +1,6 @@
 import { REGION_NAMES, STATUS_ORDER } from './constants.ts';
 import { iso } from './attendance.ts';
-import type { BackupData, Entries, HolidayCache, Profile, Settings } from './types.ts';
+import type { BackupData, Entries, HolidayCache, LeaveSettings, Profile, Settings } from './types.ts';
 export const DEFAULT_SETTINGS: Settings = { attendanceMode:'percentage', targetPercentage:50, targetDaysPerWeek:null, region:'england-and-wales', onboardingComplete:false };
 const object = (x: unknown): x is Record<string, any> => x !== null && typeof x === 'object' && !Array.isArray(x);
 export function validDate(value: unknown): value is string {
@@ -8,8 +8,16 @@ export function validDate(value: unknown): value is string {
   const date = new Date(`${value}T12:00:00`);
   return !Number.isNaN(date.getTime()) && iso(date)===value;
 }
+const halfDays = (n: unknown): n is number => typeof n==='number' && Number.isFinite(n) && n>=0 && n<=366 && Number.isInteger(n*2);
+export function validLeave(l: unknown): l is LeaveSettings {
+  if (!object(l) || !Number.isInteger(l.cycleStartMonth) || l.cycleStartMonth<1 || l.cycleStartMonth>12) return false;
+  if (!Number.isInteger(l.cycleStartDay) || l.cycleStartDay<1 || l.cycleStartDay>new Date(2024,l.cycleStartMonth,0).getDate()) return false;
+  if (!halfDays(l.allowance) || !object(l.carryover)) return false;
+  const entries=Object.entries(l.carryover);
+  return entries.length<=50 && entries.every(([key,c])=>validDate(key) && object(c) && halfDays(c.days) && (c.expires===null || validDate(c.expires)));
+}
 export function validSettings(s: unknown): s is Settings {
-  return object(s) && ['percentage','days'].includes(s.attendanceMode) &&
+  return object(s) && (s.leave===undefined || s.leave===null || validLeave(s.leave)) && ['percentage','days'].includes(s.attendanceMode) &&
     Number.isFinite(s.targetPercentage) && s.targetPercentage>=5 && s.targetPercentage<=100 &&
     Object.hasOwn(REGION_NAMES,s.region) && typeof s.onboardingComplete==='boolean' &&
     (s.attendanceMode==='percentage' ? s.targetDaysPerWeek===null :
@@ -35,4 +43,7 @@ export function validateBackup(p: any): BackupData {
   }
   return { settings:pickSettings(p.settings), entries:p.entries, holidayCache:p.holidayCache };
 }
-export const pickSettings = (s: Settings): Settings => Object.fromEntries(Object.keys(DEFAULT_SETTINGS).map(k=>[k,s[k as keyof Settings]])) as unknown as Settings;
+export const pickSettings = (s: Settings): Settings => ({
+  ...(Object.fromEntries(Object.keys(DEFAULT_SETTINGS).map(k=>[k,s[k as keyof Settings]])) as unknown as Settings),
+  ...(s.leave ? {leave:s.leave} : {}),
+});

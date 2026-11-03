@@ -21,6 +21,7 @@ const toSettings = (row: typeof userSettings.$inferSelect): Settings => ({
   targetDaysPerWeek: row.targetDaysPerWeek,
   region: row.region,
   onboardingComplete: row.onboardingComplete,
+  ...(row.leave ? { leave: row.leave } : {}),
 });
 
 const settingsValues = (userId: string, s: Settings) => ({
@@ -30,6 +31,7 @@ const settingsValues = (userId: string, s: Settings) => ({
   targetDaysPerWeek: s.targetDaysPerWeek,
   region: s.region,
   onboardingComplete: s.onboardingComplete,
+  leave: s.leave ?? null,
 });
 
 async function readJson(req: Request): Promise<unknown> {
