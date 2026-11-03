@@ -1,0 +1,1 @@
+ALTER TABLE "inoffice"."user_settings" ADD COLUMN "leave" jsonb;

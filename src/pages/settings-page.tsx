@@ -10,6 +10,8 @@ import { ConfirmDialog, type ConfirmRequest } from '@/components/confirm-dialog.
 import { SignInButton, initials, useDeleteAccount, useSignOut } from '@/components/account-menu.tsx';
 import { useAuthConfig, useSession } from '@/lib/auth-client.ts';
 import { localSummary } from '@/components/import-prompt.tsx';
+import { LeaveSettingsBody } from '@/components/leave-controls.tsx';
+import type { LeaveSettings } from '@/lib/types.ts';
 import { RegionControl, TargetControls, applyTargetDraft, targetDescription, toTargetDraft } from '@/components/target-controls.tsx';
 import { REGION_NAMES } from '@/lib/constants.ts';
 import { MonitorIcon, MoonIcon, PencilIcon, SunIcon } from 'lucide-react';
@@ -161,6 +163,21 @@ function PreferencesForm() {
           </Button>
         </div>
       )}
+    </SettingsGroup>
+  );
+}
+
+function LeaveSection() {
+  const { settings, saveSettings } = useAttendance();
+  const save = (leave: LeaveSettings | null) => {
+    const { leave: _previous, ...rest } = settings;
+    const ok = saveSettings(leave ? { ...rest, leave } : rest);
+    if (ok) toast.add({ title: leave ? 'Leave saved' : 'Leave tracking turned off' });
+    return ok;
+  };
+  return (
+    <SettingsGroup title="Leave" description="Your leave cycle, allowance and carryover, so you can tell when planned time off goes past what you have.">
+      <LeaveSettingsBody leave={settings.leave} onSave={save} />
     </SettingsGroup>
   );
 }
@@ -372,6 +389,7 @@ export function SettingsPage() {
         <AccountSection />
         {/* Remount when settings change elsewhere (import, setup, another tab) so the draft resets. */}
         <PreferencesForm key={JSON.stringify(settings)} />
+        <LeaveSection key={JSON.stringify(settings.leave ?? null)} />
         <HolidaySection />
         <AppearanceSection />
         <DataSection confirm={setRequest} />

@@ -1,5 +1,6 @@
 import { relations, sql } from 'drizzle-orm';
-import { boolean, date, index, pgSchema, primaryKey, real, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import type { LeaveSettings } from '../../src/lib/types.ts';
+import { boolean, date, index, jsonb, pgSchema, primaryKey, real, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 // All InOffice tables live in their own Postgres schema. The Supabase database is shared with
 // another project, and Supabase's Data API only exposes `public`, so nothing here is reachable
@@ -123,6 +124,8 @@ export const userSettings = inoffice.table('user_settings', {
   targetDaysPerWeek: real('target_days_per_week'),
   region: region('region').notNull().default('england-and-wales'),
   onboardingComplete: boolean('onboarding_complete').notNull().default(false),
+  /** Leave tracking (cycle, allowance, per-cycle carryover); null until turned on. Validated by the API. */
+  leave: jsonb('leave').$type<LeaveSettings>(),
   updatedAt: updatedAt(),
 });
 

@@ -49,6 +49,16 @@ test('rejects anonymous requests and keeps unknown routes as 404', async () => {
   assert.equal((await call('/health')).status, 200);
 });
 
+test('leave settings are validated and persisted with settings', async () => {
+  const { headers } = await signedInUser('leave@example.com');
+  const leave = { cycleStartMonth: 4, cycleStartDay: 1, allowance: 25, carryover: { '2026-04-01': { days: 2, expires: '2026-06-30' } } };
+  assert.equal((await call('/settings', { method: 'PUT', headers, body: { ...settings, leave: { ...leave, allowance: -3 } } })).status, 400);
+  assert.equal((await call('/settings', { method: 'PUT', headers, body: { ...settings, leave } })).status, 200);
+  assert.deepEqual((await (await call('/data', { headers })).json()).settings, { ...settings, leave });
+  await call('/settings', { method: 'PUT', headers, body: settings });
+  assert.deepEqual((await (await call('/data', { headers })).json()).settings, settings, 'turning leave off removes it');
+});
+
 test('settings and entries round-trip with validation', async () => {
   const { headers } = await signedInUser('roundtrip@example.test');
   assert.deepEqual(await (await call('/data', { headers })).json(), { settings: null, entries: {} });

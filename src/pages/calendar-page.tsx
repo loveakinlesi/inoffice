@@ -1,6 +1,7 @@
 import { Calendar } from '@/components/calendar.tsx';
 import { CatchUp } from '@/components/catch-up.tsx';
 import { PlanUsualDays } from '@/components/plan-usual-days.tsx';
+import { LeaveCard } from '@/components/leave-card.tsx';
 import { MonthSummary } from '@/components/month-summary.tsx';
 
 export function CalendarPage() {
@@ -9,6 +10,7 @@ export function CalendarPage() {
       <div className="flex min-w-0 flex-col gap-4 md:sticky md:top-24">
         <CatchUp placement="top" />
         <MonthSummary />
+        <LeaveCard />
         <CatchUp placement="below" />
         <PlanUsualDays />
       </div>

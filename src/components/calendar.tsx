@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button.tsx';
 import { toast } from '@/components/ui/toast.tsx';
 import { STATUS_META } from '@/lib/constants.ts';
 import { calculateMonth, daysInMonth, formatMonth, getAutoHoliday, getStatus, isSameDay, isWeekday, iso, officeSplit } from '@/lib/attendance.ts';
+import { calculateLeave, cycleFor } from '@/lib/leave.ts';
 import { track } from '@/lib/analytics.ts';
 import { useAttendance } from '@/state/attendance.tsx';
 import type { Status } from '@/lib/types.ts';
@@ -57,9 +58,11 @@ function useSetDay() {
       const future = day > new Date() && !isSameDay(day, new Date());
       const effect = !c.effective ? '' : done >= c.required ? ' · target met' : c.achieved ? ' · on plan'
         : ` · ${c.remaining} more to ${future ? 'plan' : 'go'}`;
+      const over = to === 'ooo' && state.settings.leave && calculateLeave(cycleFor(day, state.settings.leave), state.settings.leave, after).overdrawn.includes(key)
+        ? ' · over your leave allowance' : '';
       const when = isSameDay(day, new Date()) ? 'today' : dayLabel.format(day);
       if (to === 'blank') return `Cleared ${when}${effect}`;
-      return `${future ? 'Planned' : 'Logged'} ${when}: ${STATUS_META[to].label}${effect}`;
+      return `${future ? 'Planned' : 'Logged'} ${when}: ${STATUS_META[to].label}${over || effect}`;
     };
     const apply = (to: Choice, undoable: boolean) => state.setEntry(key, to === 'blank' ? null : to, {
       onSaved: () => showDayToast(day, describe(to), undoable ? () => { const origin = dayOrigin.get(key) ?? 'blank'; dayOrigin.delete(key); apply(origin, false); } : undefined),
